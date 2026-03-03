@@ -512,3 +512,183 @@ class TestContainerManagerCommandConstruction:
         command = mock_executor.execute.call_args[0][0]
         assert "devcontainer up" in command
         assert "--workspace-folder /custom/path" in command
+
+
+class TestContainerManagerAdditionalErrorHandling:
+    """Additional tests for ContainerManager error handling edge cases."""
+
+    @patch("src.container_manager.shutil.which")
+    @patch("src.container_manager.Path.cwd")
+    def test_ensure_running_wraps_generic_exception(self, mock_cwd: Any, mock_which: Any) -> None:
+        """Test that ensure_running wraps generic exceptions in ContainerError."""
+        mock_which.return_value = "/usr/local/bin/devcontainer"
+        mock_workspace = MagicMock(spec=Path)
+        mock_workspace.__truediv__ = lambda self, other: MagicMock(exists=lambda: True)  # type: ignore[method-assign,misc]  # type: ignore[method-assign,misc]  # type: ignore[method-assign,misc,assignment]
+        mock_workspace.__str__ = lambda self: "/workspace"  # type: ignore[method-assign,misc,assignment]
+        mock_cwd.return_value = mock_workspace
+
+        mock_executor = Mock()
+        # Simulate an unexpected exception (e.g., network error, permission issue)
+        mock_executor.execute.side_effect = RuntimeError("Unexpected system error")
+
+        manager = ContainerManager(executor=mock_executor)
+
+        with pytest.raises(ContainerError) as exc_info:
+            manager.ensure_running()
+
+        # Should wrap the exception with helpful message
+        assert "Failed to start container" in str(exc_info.value)
+        assert "Docker is running" in str(exc_info.value)
+        assert "devcontainer CLI" in str(exc_info.value)
+
+    @patch("src.container_manager.shutil.which")
+    @patch("src.container_manager.Path.cwd")
+    def test_ensure_running_reraises_container_error(self, mock_cwd: Any, mock_which: Any) -> None:
+        """Test that ensure_running re-raises ContainerError without wrapping."""
+        mock_which.return_value = "/usr/local/bin/devcontainer"
+        mock_workspace = MagicMock(spec=Path)
+        mock_workspace.__truediv__ = lambda self, other: MagicMock(exists=lambda: True)  # type: ignore[method-assign,misc]  # type: ignore[method-assign,misc]  # type: ignore[method-assign,misc,assignment]
+        mock_workspace.__str__ = lambda self: "/workspace"  # type: ignore[method-assign,misc,assignment]
+        mock_cwd.return_value = mock_workspace
+
+        mock_executor = Mock()
+        # Return a failed result to trigger ContainerError
+        mock_executor.execute.return_value = CommandResult(
+            exit_code=1,
+            stdout="",
+            stderr="Docker daemon not running",
+            command="devcontainer up",
+            success=False,
+        )
+
+        manager = ContainerManager(executor=mock_executor)
+
+        with pytest.raises(ContainerError) as exc_info:
+            manager.ensure_running()
+
+        # Should be the original ContainerError, not wrapped
+        assert "Container start failed" in str(exc_info.value)
+        assert "Docker daemon not running" in str(exc_info.value)
+
+    @patch("src.container_manager.shutil.which")
+    @patch("src.container_manager.Path.cwd")
+    def test_rebuild_up_failure_after_successful_build(
+        self, mock_cwd: Any, mock_which: Any
+    ) -> None:
+        """Test that rebuild raises ContainerError when up fails after successful build."""
+        mock_which.return_value = "/usr/local/bin/devcontainer"
+        mock_workspace = MagicMock(spec=Path)
+        mock_workspace.__truediv__ = lambda self, other: MagicMock(exists=lambda: True)  # type: ignore[method-assign,misc]  # type: ignore[method-assign,misc]  # type: ignore[method-assign,misc,assignment]
+        mock_workspace.__str__ = lambda self: "/workspace"  # type: ignore[method-assign,misc,assignment]
+        mock_cwd.return_value = mock_workspace
+
+        mock_executor = Mock()
+        # Build succeeds, but up fails
+        build_result = CommandResult(
+            exit_code=0,
+            stdout="Build completed successfully",
+            stderr="",
+            command="devcontainer build",
+            success=True,
+        )
+        up_result = CommandResult(
+            exit_code=1,
+            stdout="",
+            stderr="Port 8080 already in use",
+            command="devcontainer up",
+            success=False,
+        )
+        mock_executor.execute.side_effect = [build_result, up_result]
+
+        manager = ContainerManager(executor=mock_executor)
+
+        with pytest.raises(ContainerError) as exc_info:
+            manager.rebuild()
+
+        # Should report that up failed after build
+        assert "Container start after build failed" in str(exc_info.value)
+        assert "Port 8080 already in use" in str(exc_info.value)
+        # Should have called execute twice (build + up)
+        assert mock_executor.execute.call_count == 2
+
+    @patch("src.container_manager.shutil.which")
+    @patch("src.container_manager.Path.cwd")
+    def test_stop_handles_command_execution_failure(self, mock_cwd: Any, mock_which: Any) -> None:
+        """Test that stop wraps command execution failures in ContainerError."""
+        mock_which.return_value = "/usr/local/bin/devcontainer"
+        mock_workspace = MagicMock(spec=Path)
+        mock_workspace.__truediv__ = lambda self, other: MagicMock(exists=lambda: True)  # type: ignore[method-assign,misc]  # type: ignore[method-assign,misc]  # type: ignore[method-assign,misc,assignment]
+        mock_workspace.__str__ = lambda self: "/workspace"  # type: ignore[method-assign,misc,assignment]
+        mock_cwd.return_value = mock_workspace
+
+        mock_executor = Mock()
+        # Simulate a command execution error (e.g., permission denied)
+        mock_executor.execute.side_effect = PermissionError("Permission denied")
+
+        manager = ContainerManager(executor=mock_executor)
+
+        with pytest.raises(ContainerError) as exc_info:
+            manager.stop()
+
+        assert "Failed to stop container" in str(exc_info.value)
+
+    @patch("src.container_manager.shutil.which")
+    @patch("src.container_manager.Path.cwd")
+    def test_exec_handles_command_execution_after_ensure_running(
+        self, mock_cwd: Any, mock_which: Any
+    ) -> None:
+        """Test that exec properly handles command execution errors after container is running."""
+        mock_which.return_value = "/usr/local/bin/devcontainer"
+        mock_workspace = MagicMock(spec=Path)
+        mock_workspace.__truediv__ = lambda self, other: MagicMock(exists=lambda: True)  # type: ignore[method-assign,misc]  # type: ignore[method-assign,misc]  # type: ignore[method-assign,misc,assignment]
+        mock_workspace.__str__ = lambda self: "/workspace"  # type: ignore[method-assign,misc,assignment]
+        mock_cwd.return_value = mock_workspace
+
+        mock_executor = Mock()
+        # First call (ensure_running) succeeds, second call (exec) fails
+        ensure_result = CommandResult(
+            exit_code=0,
+            stdout="Container running",
+            stderr="",
+            command="devcontainer up",
+            success=True,
+        )
+        exec_result = CommandResult(
+            exit_code=127,
+            stdout="",
+            stderr="command not found: invalid_command",
+            command="devcontainer exec invalid_command",
+            success=False,
+        )
+        mock_executor.execute.side_effect = [ensure_result, exec_result]
+
+        manager = ContainerManager(executor=mock_executor)
+        result = manager.exec("invalid_command")
+
+        # Should return the failed result, not raise an exception
+        assert result.success is False
+        assert result.exit_code == 127
+        assert "command not found" in result.stderr
+
+    @patch("src.container_manager.shutil.which")
+    @patch("src.container_manager.Path.cwd")
+    def test_rebuild_wraps_generic_exception_during_build(
+        self, mock_cwd: Any, mock_which: Any
+    ) -> None:
+        """Test that rebuild wraps generic exceptions during build phase."""
+        mock_which.return_value = "/usr/local/bin/devcontainer"
+        mock_workspace = MagicMock(spec=Path)
+        mock_workspace.__truediv__ = lambda self, other: MagicMock(exists=lambda: True)  # type: ignore[method-assign,misc]  # type: ignore[method-assign,misc]  # type: ignore[method-assign,misc,assignment]
+        mock_workspace.__str__ = lambda self: "/workspace"  # type: ignore[method-assign,misc,assignment]
+        mock_cwd.return_value = mock_workspace
+
+        mock_executor = Mock()
+        # Simulate an unexpected exception during build
+        mock_executor.execute.side_effect = OSError("Disk full")
+
+        manager = ContainerManager(executor=mock_executor)
+
+        with pytest.raises(ContainerError) as exc_info:
+            manager.rebuild()
+
+        assert "Failed to rebuild container" in str(exc_info.value)
