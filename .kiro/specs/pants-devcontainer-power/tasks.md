@@ -34,8 +34,8 @@ The implementation follows a bottom-up approach: core utilities first, then comm
     - Implement ValidationError for parameter validation failures
     - _Requirements: 5.1, 5.2, 5.3_
 
-- [ ] 3. Implement CommandExecutor component
-  - [ ] 3.1 Create CommandExecutor class with execute method
+- [x] 3. Implement CommandExecutor component
+  - [x] 3.1 Create CommandExecutor class with execute method
     - Implement subprocess execution with output capture
     - Return CommandResult with exit code and output
     - Handle subprocess exceptions and convert to CommandExecutionError
@@ -45,7 +45,7 @@ The implementation follows a bottom-up approach: core utilities first, then comm
     - **Property 9: Exit Code Reporting**
     - **Validates: Requirements 7.3**
   
-  - [ ] 3.3 Implement execute_with_streaming method
+  - [x] 3.3 Implement execute_with_streaming method
     - Use subprocess.Popen with stdout/stderr pipes
     - Yield output lines as they arrive
     - Return final CommandResult after completion
@@ -55,14 +55,14 @@ The implementation follows a bottom-up approach: core utilities first, then comm
     - **Property 10: Output Streaming**
     - **Validates: Requirements 7.1, 7.2**
 
-- [ ] 4. Implement ContainerManager component
-  - [ ] 4.1 Create ContainerManager class with devcontainer CLI integration
+- [x] 4. Implement ContainerManager component
+  - [x] 4.1 Create ContainerManager class with devcontainer CLI integration
     - Implement _check_devcontainer_cli method to verify CLI is installed
     - Implement _get_workspace_folder method to get repository root
     - Set WORKSPACE_FOLDER and DOCKER_CLI_HINTS environment variables
     - _Requirements: 2.1, 8.5_
   
-  - [ ] 4.2 Implement ensure_running method
+  - [x] 4.2 Implement ensure_running method
     - Execute "devcontainer up --workspace-folder <workspace>"
     - Return True if successful, False otherwise
     - Handle errors and provide troubleshooting guidance
@@ -72,22 +72,22 @@ The implementation follows a bottom-up approach: core utilities first, then comm
     - **Property 12: Idempotent Container Start**
     - **Validates: Requirements 9.1**
   
-  - [ ] 4.4 Implement start method
+  - [x] 4.4 Implement start method
     - Call ensure_running and return CommandResult
     - _Requirements: 2.3_
   
-  - [ ] 4.5 Implement stop method
+  - [x] 4.5 Implement stop method
     - Execute "devcontainer exec hostname | xargs docker rm -f"
     - Return CommandResult
     - _Requirements: 2.4_
   
-  - [ ] 4.6 Implement rebuild method
+  - [x] 4.6 Implement rebuild method
     - Execute "devcontainer build --workspace-folder <workspace>"
     - Then execute "devcontainer up --workspace-folder <workspace>"
     - Return CommandResult
     - _Requirements: 2.5, 9.3_
   
-  - [ ] 4.7 Implement exec method
+  - [x] 4.7 Implement exec method
     - Call ensure_running first
     - Execute "devcontainer exec --workspace-folder <workspace> <command>"
     - Return CommandResult
@@ -100,11 +100,12 @@ The implementation follows a bottom-up approach: core utilities first, then comm
     - Test Docker daemon not running
     - _Requirements: 5.3_
 
-- [ ] 5. Checkpoint - Ensure all tests pass
-  - Ensure all tests pass, ask the user if questions arise.
+- [x] 5. Checkpoint - Ensure all tests pass
+  - Run `uv run pytest` to ensure all tests pass
+  - Ask the user if questions arise
 
-- [ ] 6. Implement PantsCommandBuilder component
-  - [ ] 6.1 Create PantsCommandBuilder class
+- [x] 6. Implement PantsCommandBuilder component
+  - [x] 6.1 Create PantsCommandBuilder class
     - Implement build_command method to construct "pants <subcommand> <target>"
     - Default target to "::" if not provided
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7_
@@ -117,7 +118,7 @@ The implementation follows a bottom-up approach: core utilities first, then comm
     - **Property 3: Default Target Behavior**
     - **Validates: Requirements 1.4, 1.6, 6.6**
   
-  - [ ] 6.2 Implement validate_target method
+  - [x] 6.2 Implement validate_target method
     - Validate target specification syntax
     - Return True for valid targets, False otherwise
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6_
@@ -128,8 +129,8 @@ The implementation follows a bottom-up approach: core utilities first, then comm
     - Test custom target specifications
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7_
 
-- [ ] 7. Implement core Pants command tools
-  - [ ] 7.1 Implement pants_fix tool
+- [x] 7. Implement core Pants command tools
+  - [x] 7.1 Implement pants_fix tool
     - Use ContainerManager.ensure_running
     - Use PantsCommandBuilder.build_command("fix", target)
     - Execute via ContainerManager.exec
@@ -140,28 +141,28 @@ The implementation follows a bottom-up approach: core utilities first, then comm
     - **Property 1: Pants Command Execution Pattern**
     - **Validates: Requirements 1.1, 1.2, 1.3, 2.1**
   
-  - [ ] 7.3 Implement pants_lint tool
+  - [x] 7.3 Implement pants_lint tool
     - Use ContainerManager.ensure_running
     - Use PantsCommandBuilder.build_command("lint", target)
     - Execute via ContainerManager.exec
     - Return CommandResult
     - _Requirements: 1.2, 6.3_
   
-  - [ ] 7.4 Implement pants_check tool
+  - [x] 7.4 Implement pants_check tool
     - Use ContainerManager.ensure_running
     - Use PantsCommandBuilder.build_command("check", target)
     - Execute via ContainerManager.exec
     - Return CommandResult
     - _Requirements: 1.3, 6.5_
   
-  - [ ] 7.5 Implement pants_test tool
+  - [x] 7.5 Implement pants_test tool
     - Use ContainerManager.ensure_running
     - Use PantsCommandBuilder.build_command("test", target)
     - Execute via ContainerManager.exec
     - Return CommandResult
     - _Requirements: 1.4, 1.5, 6.1_
   
-  - [ ] 7.6 Implement pants_package tool
+  - [x] 7.6 Implement pants_package tool
     - Use ContainerManager.ensure_running
     - Use PantsCommandBuilder.build_command("package", target)
     - Execute via ContainerManager.exec
@@ -211,7 +212,8 @@ The implementation follows a bottom-up approach: core utilities first, then comm
     - _Requirements: 2.3, 2.4, 2.5, 2.6, 2.7_
 
 - [ ] 9. Checkpoint - Ensure all tests pass
-  - Ensure all tests pass, ask the user if questions arise.
+  - Run `uv run pytest` to ensure all tests pass
+  - Ask the user if questions arise
 
 - [ ] 10. Implement WorkflowOrchestrator component
   - [ ] 10.1 Create WorkflowOrchestrator class
@@ -301,7 +303,8 @@ The implementation follows a bottom-up approach: core utilities first, then comm
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
 
 - [ ] 14. Checkpoint - Ensure all tests pass
-  - Ensure all tests pass, ask the user if questions arise.
+  - Run `uv run pytest` to ensure all tests pass
+  - Ask the user if questions arise
 
 - [ ] 15. Implement MCP server
   - [ ] 15.1 Create MCP server class
@@ -365,10 +368,10 @@ The implementation follows a bottom-up approach: core utilities first, then comm
 
 - [ ] 18. Final integration and validation
   - [ ] 18.1 Run full test suite
-    - Run all unit tests
-    - Run all property tests (minimum 100 iterations each)
-    - Run integration tests
-    - Verify 90% line coverage and 85% branch coverage
+    - Run all unit tests: `uv run pytest tests/unit/`
+    - Run all property tests (minimum 100 iterations each): `uv run pytest tests/property/`
+    - Run integration tests: `uv run pytest tests/integration/`
+    - Verify 90% line coverage and 85% branch coverage: `uv run pytest --cov=src --cov-report=html`
     - _Requirements: All_
   
   - [ ]* 18.2 Validate all correctness properties
@@ -393,7 +396,8 @@ The implementation follows a bottom-up approach: core utilities first, then comm
     - _Requirements: All_
 
 - [ ] 19. Final checkpoint - Ensure all tests pass
-  - Ensure all tests pass, ask the user if questions arise.
+  - Run `uv run pytest` to ensure all tests pass
+  - Ask the user if questions arise
 
 ## Notes
 
