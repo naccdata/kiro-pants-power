@@ -1,5 +1,5 @@
 ---
-name: "pants-devcontainer"
+name: "pants-devcontainer-power"
 displayName: "Pants DevContainer"
 description: "Automated Pants build system commands with devcontainer integration for NACC Flywheel Extensions development workflow"
 keywords: ["pants", "build", "devcontainer", "workflow", "monorepo", "nacc"]
