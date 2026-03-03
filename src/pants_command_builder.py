@@ -1,18 +1,15 @@
 """Pants command construction and validation utilities."""
 
 import re
-from typing import Optional
-
-from src.models import ValidationError
 
 
 class PantsCommandBuilder:
     """Constructs and validates Pants build system commands.
-    
+
     This class provides methods for building Pants commands with proper
     target specifications and validating target syntax.
     """
-    
+
     # Valid target patterns:
     # - "::" for all targets
     # - "path/to/dir::" for directory and subdirectories
@@ -28,20 +25,20 @@ class PantsCommandBuilder:
         r'[a-zA-Z0-9_\-./]+'  # Directory or path (e.g., "src/dir")
         r')$'
     )
-    
-    def build_command(self, subcommand: str, target: Optional[str] = None) -> str:
+
+    def build_command(self, subcommand: str, target: str | None = None) -> str:
         """Build a Pants command string.
-        
+
         Constructs a command in the format "pants <subcommand> <target>".
         If no target is provided, defaults to "::" (all targets).
-        
+
         Args:
             subcommand: The Pants subcommand (e.g., "fix", "lint", "check", "test", "package")
             target: The target specification (default: "::")
-            
+
         Returns:
             Complete Pants command string
-            
+
         Examples:
             >>> builder = PantsCommandBuilder()
             >>> builder.build_command("test")
@@ -54,25 +51,25 @@ class PantsCommandBuilder:
         # Default to "::" if no target provided
         if target is None or target == "":
             target = "::"
-        
+
         return f"pants {subcommand} {target}"
-    
+
     def validate_target(self, target: str) -> bool:
         """Validate a Pants target specification.
-        
+
         Checks if the target specification follows valid Pants syntax:
         - "::" for all targets
         - "path/to/dir::" for directory and subdirectories
         - "path/to/dir:target" for specific target
         - "path/to/file.py" for single file
         - "path/to/dir" for directory
-        
+
         Args:
             target: The target specification to validate
-            
+
         Returns:
             True if the target is valid, False otherwise
-            
+
         Examples:
             >>> builder = PantsCommandBuilder()
             >>> builder.validate_target("::")
@@ -88,5 +85,5 @@ class PantsCommandBuilder:
         """
         if not target:
             return False
-        
+
         return bool(self.TARGET_PATTERN.match(target))

@@ -1,20 +1,19 @@
 """Unit tests for core data models."""
 
-import pytest
 from src.models import (
-    CommandResult,
-    WorkflowResult,
-    PowerError,
-    ContainerError,
     CommandExecutionError,
+    CommandResult,
+    ContainerError,
+    PowerError,
     ValidationError,
+    WorkflowResult,
 )
 
 
 class TestCommandResult:
     """Tests for CommandResult dataclass."""
-    
-    def test_command_result_creation(self):
+
+    def test_command_result_creation(self) -> None:
         """Test creating a CommandResult instance."""
         result = CommandResult(
             exit_code=0,
@@ -28,8 +27,8 @@ class TestCommandResult:
         assert result.stderr == ""
         assert result.command == "echo Hello"
         assert result.success is True
-    
-    def test_output_property_combines_stdout_and_stderr(self):
+
+    def test_output_property_combines_stdout_and_stderr(self) -> None:
         """Test that output property combines stdout and stderr."""
         result = CommandResult(
             exit_code=0,
@@ -39,8 +38,8 @@ class TestCommandResult:
             success=True
         )
         assert result.output == "Standard output\nStandard error"
-    
-    def test_output_property_strips_whitespace(self):
+
+    def test_output_property_strips_whitespace(self) -> None:
         """Test that output property strips leading/trailing whitespace."""
         result = CommandResult(
             exit_code=0,
@@ -50,8 +49,8 @@ class TestCommandResult:
             success=True
         )
         assert result.output == "output  \n  error"
-    
-    def test_output_property_with_empty_stderr(self):
+
+    def test_output_property_with_empty_stderr(self) -> None:
         """Test output property when stderr is empty."""
         result = CommandResult(
             exit_code=0,
@@ -61,8 +60,8 @@ class TestCommandResult:
             success=True
         )
         assert result.output == "Only stdout"
-    
-    def test_output_property_with_empty_stdout(self):
+
+    def test_output_property_with_empty_stdout(self) -> None:
         """Test output property when stdout is empty."""
         result = CommandResult(
             exit_code=1,
@@ -76,8 +75,8 @@ class TestCommandResult:
 
 class TestWorkflowResult:
     """Tests for WorkflowResult dataclass."""
-    
-    def test_workflow_result_creation(self):
+
+    def test_workflow_result_creation(self) -> None:
         """Test creating a WorkflowResult instance."""
         result = WorkflowResult(
             steps_completed=["fix", "lint"],
@@ -89,8 +88,8 @@ class TestWorkflowResult:
         assert result.failed_step is None
         assert result.results == []
         assert result.overall_success is True
-    
-    def test_summary_property_for_successful_workflow(self):
+
+    def test_summary_property_for_successful_workflow(self) -> None:
         """Test summary property for a successful workflow."""
         result = WorkflowResult(
             steps_completed=["fix", "lint", "check"],
@@ -101,8 +100,8 @@ class TestWorkflowResult:
         summary = result.summary
         assert "completed successfully" in summary
         assert "fix, lint, check" in summary
-    
-    def test_summary_property_for_failed_workflow(self):
+
+    def test_summary_property_for_failed_workflow(self) -> None:
         """Test summary property for a failed workflow."""
         result = WorkflowResult(
             steps_completed=["fix", "lint"],
@@ -113,8 +112,8 @@ class TestWorkflowResult:
         summary = result.summary
         assert "failed at step: check" in summary
         assert "fix, lint" in summary
-    
-    def test_summary_property_with_no_completed_steps(self):
+
+    def test_summary_property_with_no_completed_steps(self) -> None:
         """Test summary property when first step fails."""
         result = WorkflowResult(
             steps_completed=[],
@@ -128,42 +127,42 @@ class TestWorkflowResult:
 
 class TestErrorExceptions:
     """Tests for error exception classes."""
-    
-    def test_power_error_is_exception(self):
+
+    def test_power_error_is_exception(self) -> None:
         """Test that PowerError is an Exception."""
         error = PowerError("Test error")
         assert isinstance(error, Exception)
         assert str(error) == "Test error"
-    
-    def test_container_error_inherits_from_power_error(self):
+
+    def test_container_error_inherits_from_power_error(self) -> None:
         """Test that ContainerError inherits from PowerError."""
         error = ContainerError("Container failed")
         assert isinstance(error, PowerError)
         assert isinstance(error, Exception)
         assert str(error) == "Container failed"
-    
-    def test_command_execution_error_inherits_from_power_error(self):
+
+    def test_command_execution_error_inherits_from_power_error(self) -> None:
         """Test that CommandExecutionError inherits from PowerError."""
         error = CommandExecutionError("Command failed")
         assert isinstance(error, PowerError)
         assert isinstance(error, Exception)
         assert str(error) == "Command failed"
-    
-    def test_validation_error_inherits_from_power_error(self):
+
+    def test_validation_error_inherits_from_power_error(self) -> None:
         """Test that ValidationError inherits from PowerError."""
         error = ValidationError("Invalid parameter")
         assert isinstance(error, PowerError)
         assert isinstance(error, Exception)
         assert str(error) == "Invalid parameter"
-    
-    def test_can_catch_all_errors_with_power_error(self):
+
+    def test_can_catch_all_errors_with_power_error(self) -> None:
         """Test that all custom errors can be caught with PowerError."""
         errors = [
             ContainerError("Container error"),
             CommandExecutionError("Command error"),
             ValidationError("Validation error"),
         ]
-        
+
         for error in errors:
             try:
                 raise error

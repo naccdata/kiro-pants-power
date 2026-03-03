@@ -1,13 +1,12 @@
 """Core data models for the Pants DevContainer Power."""
 
 from dataclasses import dataclass
-from typing import List, Optional
 
 
 @dataclass
 class CommandResult:
     """Result of executing a shell command.
-    
+
     Attributes:
         exit_code: The exit code returned by the command
         stdout: Standard output from the command
@@ -20,11 +19,11 @@ class CommandResult:
     stderr: str
     command: str
     success: bool
-    
+
     @property
     def output(self) -> str:
         """Combined stdout and stderr output.
-        
+
         Returns:
             Concatenated stdout and stderr, stripped of leading/trailing whitespace
         """
@@ -34,22 +33,22 @@ class CommandResult:
 @dataclass
 class WorkflowResult:
     """Result of executing a multi-step workflow.
-    
+
     Attributes:
         steps_completed: List of step names that were completed
         failed_step: Name of the step that failed, or None if all succeeded
         results: List of CommandResult objects for each step executed
         overall_success: Whether the entire workflow succeeded
     """
-    steps_completed: List[str]
-    failed_step: Optional[str]
-    results: List[CommandResult]
+    steps_completed: list[str]
+    failed_step: str | None
+    results: list[CommandResult]
     overall_success: bool
-    
+
     @property
     def summary(self) -> str:
         """Human-readable summary of workflow execution.
-        
+
         Returns:
             A formatted string describing the workflow outcome
         """
@@ -73,7 +72,7 @@ class PowerError(Exception):
 
 class ContainerError(PowerError):
     """Exception raised when container operations fail.
-    
+
     This includes failures in starting, stopping, rebuilding, or
     executing commands in the devcontainer.
     """
@@ -82,7 +81,7 @@ class ContainerError(PowerError):
 
 class CommandExecutionError(PowerError):
     """Exception raised when command execution fails.
-    
+
     This includes failures in executing Pants commands or other
     shell commands within the container.
     """
@@ -91,7 +90,7 @@ class CommandExecutionError(PowerError):
 
 class ValidationError(PowerError):
     """Exception raised when parameter validation fails.
-    
+
     This includes invalid target specifications, workflow names,
     or other input parameters.
     """

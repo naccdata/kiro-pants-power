@@ -1,61 +1,64 @@
 """Unit tests for Pants command tools."""
 
-import pytest
-from unittest.mock import Mock, MagicMock
+from typing import Any
+from unittest.mock import Mock
 
-from src.pants_commands import PantsCommands
+import pytest
+
 from src.models import CommandResult, ContainerError
+from src.pants_commands import PantsCommands
 
 
 class TestPantsCommands:
     """Test suite for PantsCommands class."""
-    
+
     @pytest.fixture
-    def mock_container_manager(self):
+    def mock_container_manager(self) -> Mock:
         """Create a mock ContainerManager."""
         manager = Mock()
         manager.exec = Mock()
         return manager
-    
+
     @pytest.fixture
-    def mock_command_builder(self):
+    def mock_command_builder(self) -> Mock:
         """Create a mock PantsCommandBuilder."""
         builder = Mock()
         builder.build_command = Mock()
         return builder
-    
+
     @pytest.fixture
-    def pants_commands(self, mock_container_manager, mock_command_builder):
+    def pants_commands(
+        self, mock_container_manager: Mock, mock_command_builder: Mock
+    ) -> PantsCommands:
         """Create a PantsCommands instance with mocked dependencies."""
         return PantsCommands(
-            container_manager=mock_container_manager,
-            command_builder=mock_command_builder
+            container_manager=mock_container_manager, command_builder=mock_command_builder
         )
-    
+
     # Tests for pants_fix
-    
-    def test_pants_fix_with_default_target(self, pants_commands, mock_command_builder, mock_container_manager):
+
+    def test_pants_fix_with_default_target(
+        self, pants_commands: Any, mock_command_builder: Any, mock_container_manager: Any
+    ) -> None:
         """Test pants_fix with no target uses default '::'."""
         # Setup
         mock_command_builder.build_command.return_value = "pants fix ::"
         mock_container_manager.exec.return_value = CommandResult(
-            exit_code=0,
-            stdout="Fixed 5 files",
-            stderr="",
-            command="pants fix ::",
-            success=True
+            exit_code=0, stdout="Fixed 5 files", stderr="", command="pants fix ::", success=True
         )
-        
+
         # Execute
         result = pants_commands.pants_fix()
-        
+
         # Verify
         mock_command_builder.build_command.assert_called_once_with("fix", None)
         mock_container_manager.exec.assert_called_once_with("pants fix ::")
         assert result.success
         assert result.exit_code == 0
-    
-    def test_pants_fix_with_custom_target(self, pants_commands, mock_command_builder, mock_container_manager):
+
+    def test_pants_fix_with_custom_target(
+        self, pants_commands: Any, mock_command_builder: Any, mock_container_manager: Any
+    ) -> None:
         """Test pants_fix with custom target specification."""
         # Setup
         target = "src/python::"
@@ -65,30 +68,34 @@ class TestPantsCommands:
             stdout="Fixed 3 files",
             stderr="",
             command=f"pants fix {target}",
-            success=True
+            success=True,
         )
-        
+
         # Execute
         result = pants_commands.pants_fix(target)
-        
+
         # Verify
         mock_command_builder.build_command.assert_called_once_with("fix", target)
         mock_container_manager.exec.assert_called_once_with(f"pants fix {target}")
         assert result.success
-    
-    def test_pants_fix_container_failure(self, pants_commands, mock_command_builder, mock_container_manager):
+
+    def test_pants_fix_container_failure(
+        self, pants_commands: Any, mock_command_builder: Any, mock_container_manager: Any
+    ) -> None:
         """Test pants_fix when container operations fail."""
         # Setup
         mock_command_builder.build_command.return_value = "pants fix ::"
         mock_container_manager.exec.side_effect = ContainerError("Container not running")
-        
+
         # Execute and verify
         with pytest.raises(ContainerError, match="Container not running"):
             pants_commands.pants_fix()
-    
+
     # Tests for pants_lint
-    
-    def test_pants_lint_with_default_target(self, pants_commands, mock_command_builder, mock_container_manager):
+
+    def test_pants_lint_with_default_target(
+        self, pants_commands: Any, mock_command_builder: Any, mock_container_manager: Any
+    ) -> None:
         """Test pants_lint with no target uses default '::'."""
         # Setup
         mock_command_builder.build_command.return_value = "pants lint ::"
@@ -97,18 +104,20 @@ class TestPantsCommands:
             stdout="All linters passed",
             stderr="",
             command="pants lint ::",
-            success=True
+            success=True,
         )
-        
+
         # Execute
         result = pants_commands.pants_lint()
-        
+
         # Verify
         mock_command_builder.build_command.assert_called_once_with("lint", None)
         mock_container_manager.exec.assert_called_once_with("pants lint ::")
         assert result.success
-    
-    def test_pants_lint_with_custom_target(self, pants_commands, mock_command_builder, mock_container_manager):
+
+    def test_pants_lint_with_custom_target(
+        self, pants_commands: Any, mock_command_builder: Any, mock_container_manager: Any
+    ) -> None:
         """Test pants_lint with custom target specification."""
         # Setup
         target = "src/python/myapp.py"
@@ -118,18 +127,20 @@ class TestPantsCommands:
             stdout="Linting passed",
             stderr="",
             command=f"pants lint {target}",
-            success=True
+            success=True,
         )
-        
+
         # Execute
         result = pants_commands.pants_lint(target)
-        
+
         # Verify
         mock_command_builder.build_command.assert_called_once_with("lint", target)
         mock_container_manager.exec.assert_called_once_with(f"pants lint {target}")
         assert result.success
-    
-    def test_pants_lint_failure(self, pants_commands, mock_command_builder, mock_container_manager):
+
+    def test_pants_lint_failure(
+        self, pants_commands: Any, mock_command_builder: Any, mock_container_manager: Any
+    ) -> None:
         """Test pants_lint when linting fails."""
         # Setup
         mock_command_builder.build_command.return_value = "pants lint ::"
@@ -138,20 +149,22 @@ class TestPantsCommands:
             stdout="",
             stderr="Linting errors found",
             command="pants lint ::",
-            success=False
+            success=False,
         )
-        
+
         # Execute
         result = pants_commands.pants_lint()
-        
+
         # Verify
         assert not result.success
         assert result.exit_code == 1
         assert "Linting errors found" in result.stderr
-    
+
     # Tests for pants_check
-    
-    def test_pants_check_with_default_target(self, pants_commands, mock_command_builder, mock_container_manager):
+
+    def test_pants_check_with_default_target(
+        self, pants_commands: Any, mock_command_builder: Any, mock_container_manager: Any
+    ) -> None:
         """Test pants_check with no target uses default '::'."""
         # Setup
         mock_command_builder.build_command.return_value = "pants check ::"
@@ -160,18 +173,20 @@ class TestPantsCommands:
             stdout="Type checking passed",
             stderr="",
             command="pants check ::",
-            success=True
+            success=True,
         )
-        
+
         # Execute
         result = pants_commands.pants_check()
-        
+
         # Verify
         mock_command_builder.build_command.assert_called_once_with("check", None)
         mock_container_manager.exec.assert_called_once_with("pants check ::")
         assert result.success
-    
-    def test_pants_check_with_custom_target(self, pants_commands, mock_command_builder, mock_container_manager):
+
+    def test_pants_check_with_custom_target(
+        self, pants_commands: Any, mock_command_builder: Any, mock_container_manager: Any
+    ) -> None:
         """Test pants_check with custom target specification."""
         # Setup
         target = "src/python:myapp"
@@ -181,18 +196,20 @@ class TestPantsCommands:
             stdout="Type checking passed",
             stderr="",
             command=f"pants check {target}",
-            success=True
+            success=True,
         )
-        
+
         # Execute
         result = pants_commands.pants_check(target)
-        
+
         # Verify
         mock_command_builder.build_command.assert_called_once_with("check", target)
         mock_container_manager.exec.assert_called_once_with(f"pants check {target}")
         assert result.success
-    
-    def test_pants_check_type_errors(self, pants_commands, mock_command_builder, mock_container_manager):
+
+    def test_pants_check_type_errors(
+        self, pants_commands: Any, mock_command_builder: Any, mock_container_manager: Any
+    ) -> None:
         """Test pants_check when type errors are found."""
         # Setup
         mock_command_builder.build_command.return_value = "pants check ::"
@@ -201,40 +218,40 @@ class TestPantsCommands:
             stdout="",
             stderr="Type errors found in myapp.py",
             command="pants check ::",
-            success=False
+            success=False,
         )
-        
+
         # Execute
         result = pants_commands.pants_check()
-        
+
         # Verify
         assert not result.success
         assert result.exit_code == 1
         assert "Type errors found" in result.stderr
-    
+
     # Tests for pants_test
-    
-    def test_pants_test_with_default_target(self, pants_commands, mock_command_builder, mock_container_manager):
+
+    def test_pants_test_with_default_target(
+        self, pants_commands: Any, mock_command_builder: Any, mock_container_manager: Any
+    ) -> None:
         """Test pants_test with no target uses default '::'."""
         # Setup
         mock_command_builder.build_command.return_value = "pants test ::"
         mock_container_manager.exec.return_value = CommandResult(
-            exit_code=0,
-            stdout="All tests passed",
-            stderr="",
-            command="pants test ::",
-            success=True
+            exit_code=0, stdout="All tests passed", stderr="", command="pants test ::", success=True
         )
-        
+
         # Execute
         result = pants_commands.pants_test()
-        
+
         # Verify
         mock_command_builder.build_command.assert_called_once_with("test", None)
         mock_container_manager.exec.assert_called_once_with("pants test ::")
         assert result.success
-    
-    def test_pants_test_with_custom_target(self, pants_commands, mock_command_builder, mock_container_manager):
+
+    def test_pants_test_with_custom_target(
+        self, pants_commands: Any, mock_command_builder: Any, mock_container_manager: Any
+    ) -> None:
         """Test pants_test with custom target specification."""
         # Setup
         target = "src/python/test_myapp.py"
@@ -244,18 +261,20 @@ class TestPantsCommands:
             stdout="Tests passed",
             stderr="",
             command=f"pants test {target}",
-            success=True
+            success=True,
         )
-        
+
         # Execute
         result = pants_commands.pants_test(target)
-        
+
         # Verify
         mock_command_builder.build_command.assert_called_once_with("test", target)
         mock_container_manager.exec.assert_called_once_with(f"pants test {target}")
         assert result.success
-    
-    def test_pants_test_failure(self, pants_commands, mock_command_builder, mock_container_manager):
+
+    def test_pants_test_failure(
+        self, pants_commands: Any, mock_command_builder: Any, mock_container_manager: Any
+    ) -> None:
         """Test pants_test when tests fail."""
         # Setup
         mock_command_builder.build_command.return_value = "pants test ::"
@@ -264,20 +283,22 @@ class TestPantsCommands:
             stdout="",
             stderr="Test failed: test_identifier_validation",
             command="pants test ::",
-            success=False
+            success=False,
         )
-        
+
         # Execute
         result = pants_commands.pants_test()
-        
+
         # Verify
         assert not result.success
         assert result.exit_code == 1
         assert "Test failed" in result.stderr
-    
+
     # Tests for pants_package
-    
-    def test_pants_package_with_default_target(self, pants_commands, mock_command_builder, mock_container_manager):
+
+    def test_pants_package_with_default_target(
+        self, pants_commands: Any, mock_command_builder: Any, mock_container_manager: Any
+    ) -> None:
         """Test pants_package with no target uses default '::'."""
         # Setup
         mock_command_builder.build_command.return_value = "pants package ::"
@@ -286,18 +307,20 @@ class TestPantsCommands:
             stdout="Built 3 packages",
             stderr="",
             command="pants package ::",
-            success=True
+            success=True,
         )
-        
+
         # Execute
         result = pants_commands.pants_package()
-        
+
         # Verify
         mock_command_builder.build_command.assert_called_once_with("package", None)
         mock_container_manager.exec.assert_called_once_with("pants package ::")
         assert result.success
-    
-    def test_pants_package_with_custom_target(self, pants_commands, mock_command_builder, mock_container_manager):
+
+    def test_pants_package_with_custom_target(
+        self, pants_commands: Any, mock_command_builder: Any, mock_container_manager: Any
+    ) -> None:
         """Test pants_package with custom target specification."""
         # Setup
         target = "src/python:myapp"
@@ -307,18 +330,20 @@ class TestPantsCommands:
             stdout="Built package: myapp",
             stderr="",
             command=f"pants package {target}",
-            success=True
+            success=True,
         )
-        
+
         # Execute
         result = pants_commands.pants_package(target)
-        
+
         # Verify
         mock_command_builder.build_command.assert_called_once_with("package", target)
         mock_container_manager.exec.assert_called_once_with(f"pants package {target}")
         assert result.success
-    
-    def test_pants_package_failure(self, pants_commands, mock_command_builder, mock_container_manager):
+
+    def test_pants_package_failure(
+        self, pants_commands: Any, mock_command_builder: Any, mock_container_manager: Any
+    ) -> None:
         """Test pants_package when packaging fails."""
         # Setup
         mock_command_builder.build_command.return_value = "pants package ::"
@@ -327,51 +352,55 @@ class TestPantsCommands:
             stdout="",
             stderr="Build failed: missing dependency",
             command="pants package ::",
-            success=False
+            success=False,
         )
-        
+
         # Execute
         result = pants_commands.pants_package()
-        
+
         # Verify
         assert not result.success
         assert result.exit_code == 1
         assert "Build failed" in result.stderr
-    
+
     # Integration-style tests
-    
-    def test_all_commands_use_container_exec(self, pants_commands, mock_container_manager):
+
+    def test_all_commands_use_container_exec(
+        self, pants_commands: Any, mock_container_manager: Any
+    ) -> None:
         """Test that all Pants commands use ContainerManager.exec."""
         # Setup
         mock_container_manager.exec.return_value = CommandResult(
             exit_code=0, stdout="", stderr="", command="", success=True
         )
-        
+
         # Execute all commands
         pants_commands.pants_fix()
         pants_commands.pants_lint()
         pants_commands.pants_check()
         pants_commands.pants_test()
         pants_commands.pants_package()
-        
+
         # Verify exec was called 5 times
         assert mock_container_manager.exec.call_count == 5
-    
-    def test_all_commands_use_command_builder(self, pants_commands, mock_command_builder, mock_container_manager):
+
+    def test_all_commands_use_command_builder(
+        self, pants_commands: Any, mock_command_builder: Any, mock_container_manager: Any
+    ) -> None:
         """Test that all Pants commands use PantsCommandBuilder."""
         # Setup
         mock_command_builder.build_command.return_value = "pants cmd ::"
         mock_container_manager.exec.return_value = CommandResult(
             exit_code=0, stdout="", stderr="", command="", success=True
         )
-        
+
         # Execute all commands
         pants_commands.pants_fix()
         pants_commands.pants_lint()
         pants_commands.pants_check()
         pants_commands.pants_test()
         pants_commands.pants_package()
-        
+
         # Verify build_command was called 5 times with correct subcommands
         assert mock_command_builder.build_command.call_count == 5
         calls = mock_command_builder.build_command.call_args_list
