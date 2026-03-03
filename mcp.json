@@ -2,7 +2,7 @@
   "mcpServers": {
     "pants-devcontainer": {
       "command": "sh",
-      "args": ["-c", "cd \"${powerDir}\" && uv run python -m src.server"],
+      "args": ["-c", "cd \"${powerDir}\" && PYTHONPATH=\"${powerDir}\" uv run python -m src.server"],
       "env": {}
     }
   }
