@@ -1,8 +1,9 @@
 {
   "mcpServers": {
     "pants-devcontainer": {
-      "command": "sh",
-      "args": ["-c", "cd \"${powerDir}\" && exec uv run --python 3.12 python -c 'import sys; sys.path.insert(0, \"${powerDir}\"); exec(open(\"src/server.py\").read())'"],
+      "command": "uvx",
+      "args": ["--from", ".", "pants-devcontainer-power"],
+      "cwd": "${powerDir}",
       "env": {}
     }
   }
