@@ -276,8 +276,8 @@ The implementation follows a bottom-up approach: core utilities first, then comm
     - Test graceful handling of missing cache directory
     - _Requirements: 4.1, 4.2, 4.3_
 
-- [ ] 13. Implement error handling and formatting
-  - [ ] 13.1 Implement error message formatting
+- [x] 13. Implement error handling and formatting
+  - [x] 13.1 Implement error message formatting
     - Create format_error function for ContainerError
     - Create format_error function for CommandExecutionError
     - Create format_error function for ValidationError
@@ -288,7 +288,7 @@ The implementation follows a bottom-up approach: core utilities first, then comm
     - **Property 7: Error Message Formatting**
     - **Validates: Requirements 5.1, 5.2**
   
-  - [ ] 13.3 Implement success message formatting
+  - [x] 13.3 Implement success message formatting
     - Create format_success function for CommandResult
     - Handle empty output gracefully
     - _Requirements: 5.4, 5.5_
