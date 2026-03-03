@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "pants-devcontainer": {
+      "command": "python",
+      "args": ["-m", "src.server"],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}"
+      }
+    }
+  }
+}
