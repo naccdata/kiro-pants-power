@@ -242,14 +242,14 @@ The implementation follows a bottom-up approach: core utilities first, then comm
     - Test workflow progress messages
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
 
-- [ ] 11. Implement workflow tools
-  - [ ] 11.1 Implement full_quality_check tool
+- [x] 11. Implement workflow tools
+  - [x] 11.1 Implement full_quality_check tool
     - Use WorkflowOrchestrator with ["fix", "lint", "check", "test"] steps
     - Pass target parameter to all steps
     - Return WorkflowResult
     - _Requirements: 3.1, 3.2, 3.3_
   
-  - [ ] 11.2 Implement pants_workflow tool
+  - [x] 11.2 Implement pants_workflow tool
     - Validate workflow parameter against supported workflows
     - Use WorkflowOrchestrator.get_workflow_steps
     - Execute workflow with WorkflowOrchestrator.execute_workflow
@@ -263,8 +263,8 @@ The implementation follows a bottom-up approach: core utilities first, then comm
     - Test pants_workflow with invalid workflow name
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
 
-- [ ] 12. Implement utility tools
-  - [ ] 12.1 Implement pants_clear_cache tool
+- [x] 12. Implement utility tools
+  - [x] 12.1 Implement pants_clear_cache tool
     - Use ContainerManager.ensure_running
     - Execute "rm -rf .pants.d/pids" via ContainerManager.exec
     - Handle missing directory gracefully (success without error)
