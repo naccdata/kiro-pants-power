@@ -136,3 +136,25 @@ class PantsCommands:
         """
         command = self.command_builder.build_command("package", target)
         return self.container_manager.exec(command)
+
+
+    def pants_clear_cache(self) -> CommandResult:
+        """Clear Pants cache to resolve filesystem issues.
+
+        Ensures the container is running, then executes "rm -rf .pants.d/pids"
+        inside the container. Handles missing cache directory gracefully by
+        returning success even if the directory doesn't exist.
+
+        Returns:
+            CommandResult with the outcome of the cache clearing operation
+
+        Examples:
+            >>> commands = PantsCommands()
+            >>> result = commands.pants_clear_cache()
+            >>> print(result.success)
+            True
+        """
+        # Use -f flag to suppress errors if directory doesn't exist
+        command = "rm -rf .pants.d/pids"
+        return self.container_manager.exec(command)
+

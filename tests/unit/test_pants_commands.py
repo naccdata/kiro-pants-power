@@ -380,9 +380,10 @@ class TestPantsCommands:
         pants_commands.pants_check()
         pants_commands.pants_test()
         pants_commands.pants_package()
+        pants_commands.pants_clear_cache()
 
-        # Verify exec was called 5 times
-        assert mock_container_manager.exec.call_count == 5
+        # Verify exec was called 6 times
+        assert mock_container_manager.exec.call_count == 6
 
     def test_all_commands_use_command_builder(
         self, pants_commands: Any, mock_command_builder: Any, mock_container_manager: Any
@@ -409,3 +410,48 @@ class TestPantsCommands:
         assert calls[2][0][0] == "check"
         assert calls[3][0][0] == "test"
         assert calls[4][0][0] == "package"
+
+
+    # Tests for pants_clear_cache
+
+    def test_pants_clear_cache_successful(
+        self, pants_commands: Any, mock_container_manager: Any
+    ) -> None:
+        """Test pants_clear_cache successfully clears cache."""
+        # Setup
+        mock_container_manager.exec.return_value = CommandResult(
+            exit_code=0,
+            stdout="",
+            stderr="",
+            command="rm -rf .pants.d/pids",
+            success=True,
+        )
+
+        # Execute
+        result = pants_commands.pants_clear_cache()
+
+        # Verify
+        mock_container_manager.exec.assert_called_once_with("rm -rf .pants.d/pids")
+        assert result.success
+        assert result.exit_code == 0
+
+    def test_pants_clear_cache_missing_directory(
+        self, pants_commands: Any, mock_container_manager: Any
+    ) -> None:
+        """Test pants_clear_cache handles missing cache directory gracefully."""
+        # Setup - rm -rf returns success even if directory doesn't exist
+        mock_container_manager.exec.return_value = CommandResult(
+            exit_code=0,
+            stdout="",
+            stderr="",
+            command="rm -rf .pants.d/pids",
+            success=True,
+        )
+
+        # Execute
+        result = pants_commands.pants_clear_cache()
+
+        # Verify - should succeed without error
+        assert result.success
+        assert result.exit_code == 0
+
