@@ -684,3 +684,178 @@ Use realistic test data:
 - Actual devcontainer CLI output formats
 - Representative workflow sequences
 
+
+
+## Coding Standards
+
+### Type Annotations
+
+All code in this project must include complete type annotations to ensure type safety and improve code maintainability.
+
+#### Requirements
+
+1. **All functions and methods must have type annotations**
+   - All parameters must be typed
+   - Return types must be explicitly declared
+   - Use `-> None` for functions that don't return a value
+
+2. **All class attributes must be typed**
+   - Use type annotations in `__init__` methods
+   - Use class-level type annotations where appropriate
+
+3. **Use proper type hints from the `typing` module**
+   - Use `Any` only when truly necessary (e.g., mock objects in tests)
+   - Prefer specific types over `Any` whenever possible
+   - Use union types (`Type1 | Type2`) for Python 3.12+
+   - Use `Type | None` for nullable values
+
+#### Examples
+
+Good:
+```python
+from typing import Any
+from pathlib import Path
+
+def process_file(filepath: Path, encoding: str = "utf-8") -> str:
+    """Read and process a file."""
+    return filepath.read_text(encoding=encoding)
+
+class DataProcessor:
+    def __init__(self, config: dict[str, Any]) -> None:
+        self.config = config
+        self.results: list[str] = []
+    
+    def process(self, data: str) -> bool:
+        self.results.append(data)
+        return True
+```
+
+Bad:
+```python
+# Missing return type
+def process_file(filepath, encoding="utf-8"):
+    return filepath.read_text(encoding=encoding)
+
+# Missing parameter types
+def calculate(x, y):
+    return x + y
+```
+
+#### Test Code Type Annotations
+
+Test code must also include type annotations:
+
+```python
+import pytest
+from typing import Any
+from unittest.mock import Mock
+
+class TestMyClass:
+    @pytest.fixture
+    def mock_dependency(self) -> Mock:
+        return Mock()
+    
+    def test_method(self, mock_dependency: Any) -> None:
+        result = my_function(mock_dependency)
+        assert result is not None
+```
+
+#### Enforcement
+
+Type annotations are enforced through:
+
+1. **Mypy** - Static type checker configured in `pyproject.toml`
+   - `disallow_untyped_defs = true` - All functions must have type annotations
+   - `warn_return_any = true` - Warn when returning `Any`
+   - `warn_unused_configs = true` - Warn about unused mypy configurations
+
+2. **CI/CD Pipeline** - Type checks run automatically
+   - Run `uv run mypy src/ tests/` to check types locally
+   - All type errors must be resolved before merging
+
+3. **Code Review** - Reviewers should verify type annotations are:
+   - Present on all functions and methods
+   - Accurate and meaningful
+   - Using specific types rather than `Any` where possible
+
+### Code Quality Standards
+
+#### Linting and Formatting
+
+- All code must pass `ruff check` without errors
+- Line length limit: 100 characters
+- Use `ruff format` for consistent formatting
+- Follow PEP 8 style guidelines
+
+#### Code Organization
+
+- One class per file (with exceptions for closely related classes)
+- Group related functions into modules
+- Use clear, descriptive names for functions, classes, and variables
+- Avoid abbreviations unless widely understood
+
+#### Documentation
+
+- All public functions and classes must have docstrings
+- Docstrings should follow Google style format:
+  - Brief description
+  - Args: Parameter descriptions with types
+  - Returns: Return value description with type
+  - Raises: Exceptions that may be raised
+  - Examples: Usage examples where helpful
+
+Example:
+```python
+def execute_command(command: str, timeout: int | None = None) -> CommandResult:
+    """Execute a shell command and return the result.
+    
+    Args:
+        command: The shell command to execute
+        timeout: Optional timeout in seconds (default: None for no timeout)
+    
+    Returns:
+        CommandResult containing exit code, stdout, and stderr
+    
+    Raises:
+        CommandExecutionError: If the command fails to execute
+        TimeoutError: If the command exceeds the timeout
+    
+    Examples:
+        >>> result = execute_command("echo hello")
+        >>> print(result.stdout)
+        hello
+    """
+    pass
+```
+
+#### Error Handling
+
+- Use specific exception types rather than generic `Exception`
+- Provide clear error messages with context
+- Include troubleshooting guidance in error messages where appropriate
+- Log errors with sufficient detail for debugging
+
+#### Testing Standards
+
+- All code must have corresponding unit tests
+- Test coverage: minimum 90% line coverage, 85% branch coverage
+- Use property-based testing (Hypothesis) for universal properties
+- Test both success and failure paths
+- Use descriptive test names that explain what is being tested
+
+### Quality Checks
+
+Run all quality checks before committing:
+
+```bash
+# Run all checks
+uv run ruff check src/ tests/
+uv run ruff format src/ tests/
+uv run mypy src/ tests/
+uv run pytest
+
+# Or run them together
+uv run ruff check src/ tests/ && \
+uv run mypy src/ tests/ && \
+uv run pytest
+```
