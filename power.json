@@ -1,0 +1,171 @@
+{
+  "name": "pants-devcontainer-power",
+  "version": "0.1.0",
+  "description": "MCP tools for Pants build system with devcontainer integration",
+  "keywords": ["pants", "build", "devcontainer", "workflow", "monorepo", "nacc"],
+  "runtime": {
+    "type": "python",
+    "version": "3.12"
+  },
+  "entrypoint": "src/server.py",
+  "tools": [
+    {
+      "name": "pants_fix",
+      "description": "Format code and auto-fix linting issues",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "description": "Pants target specification (default: '::')",
+            "default": "::"
+          }
+        }
+      }
+    },
+    {
+      "name": "pants_lint",
+      "description": "Run linters on code",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "description": "Pants target specification (default: '::')",
+            "default": "::"
+          }
+        }
+      }
+    },
+    {
+      "name": "pants_check",
+      "description": "Run type checking with mypy",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "description": "Pants target specification (default: '::')",
+            "default": "::"
+          }
+        }
+      }
+    },
+    {
+      "name": "pants_test",
+      "description": "Run tests",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "description": "Pants target specification (default: '::')",
+            "default": "::"
+          }
+        }
+      }
+    },
+    {
+      "name": "pants_package",
+      "description": "Build packages",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "description": "Pants target specification (default: '::')",
+            "default": "::"
+          }
+        }
+      }
+    },
+    {
+      "name": "container_start",
+      "description": "Start the devcontainer (idempotent)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "container_stop",
+      "description": "Stop the devcontainer",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "container_rebuild",
+      "description": "Rebuild and restart the devcontainer",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "container_exec",
+      "description": "Execute arbitrary command in container",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "command": {
+            "type": "string",
+            "description": "Shell command to execute"
+          }
+        },
+        "required": ["command"]
+      }
+    },
+    {
+      "name": "container_shell",
+      "description": "Provide instructions for opening interactive shell",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "full_quality_check",
+      "description": "Run complete quality check workflow (fix → lint → check → test)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "description": "Pants target specification (default: '::')",
+            "default": "::"
+          }
+        }
+      }
+    },
+    {
+      "name": "pants_workflow",
+      "description": "Execute custom workflow sequence",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "workflow": {
+            "type": "string",
+            "description": "Workflow name",
+            "enum": ["fix-lint", "check-test", "fix-lint-check"]
+          },
+          "target": {
+            "type": "string",
+            "description": "Pants target specification (default: '::')",
+            "default": "::"
+          }
+        },
+        "required": ["workflow"]
+      }
+    },
+    {
+      "name": "pants_clear_cache",
+      "description": "Clear Pants cache to resolve filesystem issues",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  ]
+}
