@@ -1,11 +1,10 @@
 {
   "mcpServers": {
     "pants-devcontainer": {
-      "command": "python",
-      "args": ["-m", "src.server"],
-      "cwd": "${workspaceFolder}",
+      "command": "uv",
+      "args": ["run", "python", "-m", "src.server"],
       "env": {
-        "PYTHONPATH": "${workspaceFolder}"
+        "PYTHONPATH": "${powerDir}"
       }
     }
   }
