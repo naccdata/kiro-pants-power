@@ -111,8 +111,9 @@ The Pants DevContainer Power is a Kiro Power that provides MCP (Model Context Pr
 1. THE Power SHALL include a power.json manifest file that declares all MCP tools
 2. THE Power SHALL include a README.md file with installation and usage instructions
 3. THE Power SHALL include keywords: "pants", "build", "devcontainer", "workflow", "monorepo"
-4. THE Power SHALL specify Python 3.11 or higher as the required runtime environment
+4. THE Power SHALL specify Python 3.12 or higher as the required runtime environment
 5. THE Power SHALL require the devcontainer CLI to be installed (`npm install -g @devcontainers/cli`)
+6. THE Power SHALL use pyproject.toml for dependency management with uv.lock for reproducible builds
 
 ### Requirement 9: Idempotent Container Operations
 

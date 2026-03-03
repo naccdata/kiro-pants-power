@@ -1,0 +1,45 @@
+[project]
+name = "pants-devcontainer-power"
+version = "0.1.0"
+description = "MCP tools for Pants build system with devcontainer integration"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "mcp>=0.9.0",
+    "hypothesis>=6.0.0",
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "mypy>=1.0.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--strict-markers",
+    "--tb=short",
+]
+markers = [
+    "property: property-based tests using Hypothesis",
+    "feature: feature identifier for property tests",
+]
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true

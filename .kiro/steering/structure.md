@@ -14,10 +14,12 @@ inclusion: auto
 │   ├── speccs/            # Spec files for feature development
 │   │   └── pants-devcontainer-power/  # This power's spec
 │   └── steering/          # AI assistant guidance documents
+├── .venv/                 # Virtual environment (managed by uv, gitignored)
 ├── .gitignore             # Git ignore patterns (Python-focused)
 ├── README.md              # Project documentation
 ├── power.json             # MCP server manifest
-├── requirements.txt       # Python dependencies
+├── pyproject.toml         # Project metadata and dependencies (uv/pip)
+├── uv.lock                # Locked dependencies for reproducible builds
 ├── src/                   # Source code
 │   └── server.py          # MCP server implementation
 └── tests/                 # Test suite
@@ -32,7 +34,8 @@ inclusion: auto
 
 - **power.json**: MCP server manifest declaring all 15 tools
 - **src/server.py**: Main MCP server implementation
-- **requirements.txt**: Python dependencies (mcp, hypothesis, pytest)
+- **pyproject.toml**: Project metadata and dependencies
+- **uv.lock**: Locked dependencies for reproducible builds
 
 ### Component Architecture
 
@@ -95,7 +98,8 @@ The power is organized into these internal components:
 ### Configuration Files
 
 - **power.json**: MCP tool definitions and metadata
-- **requirements.txt**: Python dependencies
+- **pyproject.toml**: Project metadata, dependencies, and tool configuration
+- **uv.lock**: Locked dependency versions for reproducible builds
 - **.devcontainer/**: DevContainer configuration (required for power to function)
 - **BUILD files**: Pants target definitions (in target repository)
 - **pants.toml**: Pants configuration (in target repository)
@@ -106,6 +110,7 @@ The power is organized into these internal components:
 - Environment variables in `.env` files (gitignored)
 - Docker must be running for devcontainer operations
 - DevContainer CLI must be installed globally via npm
+- **uv** recommended for fast dependency management (10-100x faster than pip)
 
 ## Error Handling
 

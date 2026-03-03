@@ -22,11 +22,13 @@ The power provides both individual command tools (pants_fix, pants_lint, etc.) a
 pants-devcontainer-power/
 ├── power.json              # MCP server manifest
 ├── README.md               # Installation and usage documentation
+├── pyproject.toml          # Project metadata and dependencies
+├── uv.lock                 # Locked dependencies for reproducible builds
 ├── src/
 │   └── server.py          # MCP server implementation
 ├── tests/
 │   └── test_server.py     # Test suite
-└── requirements.txt        # Python dependencies
+└── .venv/                  # Virtual environment (gitignored)
 ```
 
 ### MCP Server Architecture
@@ -327,7 +329,7 @@ class PowerConfig:
     name: str = "pants-devcontainer-power"
     version: str = "0.1.0"
     description: str = "MCP tools for Pants build system with devcontainer integration"
-    python_version: str = "3.11+"
+    python_version: str = "3.12+"
     repository_root: Path = Path(".")
     
     def validate(self) -> bool:

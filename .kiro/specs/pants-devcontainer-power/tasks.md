@@ -11,22 +11,23 @@ The implementation follows a bottom-up approach: core utilities first, then comm
 - [x] 1. Set up project structure and dependencies
   - Create directory structure: src/, tests/unit/, tests/property/, tests/integration/
   - Create power.json manifest with tool definitions
-  - Create requirements.txt with dependencies: mcp, hypothesis, pytest
+  - Create pyproject.toml with dependencies: mcp, hypothesis, pytest
+  - Create uv.lock for reproducible builds
   - Create .config.kiro with spec metadata
   - _Requirements: 8.1, 8.4_
 
-- [ ] 2. Implement core data models
-  - [ ] 2.1 Create CommandResult dataclass
+- [x] 2. Implement core data models
+  - [x] 2.1 Create CommandResult dataclass
     - Implement CommandResult with exit_code, stdout, stderr, command, success fields
     - Implement output property combining stdout and stderr
     - _Requirements: 5.4, 7.3_
   
-  - [ ] 2.2 Create WorkflowResult dataclass
+  - [x] 2.2 Create WorkflowResult dataclass
     - Implement WorkflowResult with steps_completed, failed_step, results, overall_success
     - Implement summary property for human-readable output
     - _Requirements: 3.2, 3.3_
   
-  - [ ] 2.3 Create error exception classes
+  - [x] 2.3 Create error exception classes
     - Implement PowerError base exception
     - Implement ContainerError for container operation failures
     - Implement CommandExecutionError for command failures

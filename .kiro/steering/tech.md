@@ -25,8 +25,10 @@ inclusion: auto
 
 ## Package Management
 
-- **pip**: Standard Python package installer
-- **requirements.txt**: Dependency specification
+- **uv**: Fast Python package manager and resolver (recommended, 10-100x faster than pip)
+- **pyproject.toml**: Modern Python project configuration (PEP 621)
+- **uv.lock**: Locked dependency versions for reproducible builds
+- **pip**: Alternative package installer (still supported via pyproject.toml)
 
 ## Prerequisites
 
@@ -43,6 +45,56 @@ Before using this power, ensure:
    ```bash
    devcontainer exec --workspace-folder . bash get-pants.sh
    ```
+
+4. **uv installed (recommended for development)**:
+   ```bash
+   # macOS/Linux
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+   
+   # Or via Homebrew
+   brew install uv
+   
+   # Or via pip
+   pip install uv
+   ```
+
+## Development Workflow
+
+### Using uv (Recommended)
+
+```bash
+# Install dependencies
+uv sync
+
+# Run tests
+uv run pytest
+
+# Run specific test file
+uv run pytest tests/unit/test_models.py -v
+
+# Add a new dependency
+uv add <package-name>
+
+# Add a dev dependency
+uv add --dev <package-name>
+
+# Run the MCP server
+uv run python src/server.py
+```
+
+### Using pip (Alternative)
+
+```bash
+# Create virtual environment
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# Install dependencies
+pip install -e .
+
+# Run tests
+pytest
+```
 
 ## Common Pants Commands
 
