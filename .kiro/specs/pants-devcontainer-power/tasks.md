@@ -93,7 +93,7 @@ The implementation follows a bottom-up approach: core utilities first, then comm
     - Return CommandResult
     - _Requirements: 2.6_
   
-  - [ ]* 4.8 Write unit tests for ContainerManager error handling
+  - [x] 4.8 Write unit tests for ContainerManager error handling
     - Test devcontainer CLI not found
     - Test .devcontainer/ directory missing
     - Test container start failure
@@ -302,18 +302,18 @@ The implementation follows a bottom-up approach: core utilities first, then comm
     - Test success formatting with output and without output
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
 
-- [ ] 14. Checkpoint - Ensure all tests pass
+- [x] 14. Checkpoint - Ensure all tests pass
   - Run `uv run pytest` to ensure all tests pass
   - Ask the user if questions arise
 
-- [ ] 15. Implement MCP server
-  - [ ] 15.1 Create MCP server class
+- [x] 15. Implement MCP server
+  - [x] 15.1 Create MCP server class
     - Initialize with PowerConfig
     - Validate devcontainer CLI and .devcontainer/ directory on startup
     - Provide helpful error messages if prerequisites missing
     - _Requirements: 8.5_
   
-  - [ ] 15.2 Register all MCP tools
+  - [x] 15.2 Register all MCP tools
     - Register 5 Pants command tools (fix, lint, check, test, package)
     - Register 5 container lifecycle tools (start, stop, rebuild, exec, shell)
     - Register 2 workflow tools (full_quality_check, pants_workflow)
@@ -321,22 +321,22 @@ The implementation follows a bottom-up approach: core utilities first, then comm
     - Each tool includes description and parameter schema
     - _Requirements: 8.1, 10.1_
   
-  - [ ] 15.3 Implement tool invocation handler
+  - [x] 15.3 Implement tool invocation handler
     - Validate tool name and parameters
     - Route to appropriate tool function
     - Catch exceptions and convert to MCP error responses
     - Return MCP tool result with formatted output
     - _Requirements: 5.1, 5.2, 5.3, 5.4_
   
-  - [ ]* 15.4 Write integration tests for MCP server
+  - [x] 15.4 Write integration tests for MCP server
     - Test server initialization
     - Test tool registration
     - Test tool invocation for each tool
     - Test error handling and response formatting
     - _Requirements: 8.1, 8.2, 8.5_
 
-- [ ] 16. Create power.json manifest
-  - [ ] 16.1 Define power metadata
+- [x] 16. Create power.json manifest
+  - [x] 16.1 Define power metadata
     - Set name: "pants-devcontainer-power"
     - Set version: "0.1.0"
     - Set description
@@ -344,14 +344,14 @@ The implementation follows a bottom-up approach: core utilities first, then comm
     - Set runtime: "python3.11+"
     - _Requirements: 8.1, 8.3, 8.4_
   
-  - [ ] 16.2 Define all 15 MCP tools in manifest
+  - [x] 16.2 Define all 15 MCP tools in manifest
     - Define each tool with name, description, and input schema
     - Include parameter types and descriptions
     - Mark optional parameters
     - _Requirements: 8.1, 10.1_
 
-- [ ] 17. Create documentation
-  - [ ] 17.1 Create README.md
+- [x] 17. Create documentation
+  - [x] 17.1 Create README.md
     - Write overview and key features
     - Document installation steps (npm install -g @devcontainers/cli)
     - Document Pants installation requirement
@@ -360,14 +360,14 @@ The implementation follows a bottom-up approach: core utilities first, then comm
     - Explain relationship to devcontainer CLI
     - _Requirements: 8.2, 10.2, 10.3, 10.4, 10.5_
   
-  - [ ] 17.2 Add inline documentation
+  - [x] 17.2 Add inline documentation
     - Add docstrings to all classes and methods
     - Include parameter descriptions and return types
     - Add usage examples in docstrings
     - _Requirements: 10.1_
 
-- [ ] 18. Final integration and validation
-  - [ ] 18.1 Run full test suite
+- [x] 18. Final integration and validation
+  - [x] 18.1 Run full test suite
     - Run all unit tests: `uv run pytest tests/unit/`
     - Run all property tests (minimum 100 iterations each): `uv run pytest tests/property/`
     - Run integration tests: `uv run pytest tests/integration/`
@@ -388,14 +388,14 @@ The implementation follows a bottom-up approach: core utilities first, then comm
     - Verify Property 11: Workflow Progress Indication
     - Verify Property 12: Idempotent Container Start
   
-  - [ ] 18.3 Manual testing with actual devcontainer
+  - [x] 18.3 Manual testing with actual devcontainer
     - Test power in a repository with real devcontainer
     - Verify all tools work with actual Pants commands
     - Test error scenarios (container not running, CLI not found, etc.)
     - Verify output formatting and streaming
     - _Requirements: All_
 
-- [ ] 19. Final checkpoint - Ensure all tests pass
+- [x] 19. Final checkpoint - Ensure all tests pass
   - Run `uv run pytest` to ensure all tests pass
   - Ask the user if questions arise
 
