@@ -2,9 +2,9 @@
 
 ## Overview
 
-The Pants DevContainer Power is an MCP (Model Context Protocol) server that provides tools for managing the NACC Flywheel Extensions development workflow. It wraps Pants build system commands with automatic devcontainer execution, eliminating the need for developers to manually manage container lifecycle or remember wrapper scripts.
+The Pants DevContainer Power is an MCP (Model Context Protocol) server that provides tools for managing development workflows that use Pants build system within devcontainers. It wraps Pants build system commands with automatic devcontainer execution, eliminating the need for developers to manually manage container lifecycle or remember wrapper scripts.
 
-The power consolidates knowledge from multiple steering documents into executable tools that enforce best practices. It provides both individual command tools (pants_fix, pants_lint, etc.) and workflow orchestration tools (full_quality_check) that execute multiple commands in sequence.
+The power provides both individual command tools (pants_fix, pants_lint, etc.) and workflow orchestration tools (full_quality_check) that execute multiple commands in sequence, enforcing best practices for Pants-based development in containerized environments.
 
 ### Key Design Goals
 
@@ -12,7 +12,7 @@ The power consolidates knowledge from multiple steering documents into executabl
 2. **Fail-fast feedback**: Commands stop on first error with clear diagnostic information
 3. **Workflow automation**: Common command sequences (fix → lint → check → test) available as single operations
 4. **Idempotent operations**: Container start operations are safe to call repeatedly
-5. **Target flexibility**: Support both full monorepo operations (::) and specific target execution
+5. **Target flexibility**: Support both full project operations (::) and specific target execution
 
 ## Architecture
 
@@ -68,10 +68,11 @@ All devcontainer operations set these environment variables:
 
 #### Pants Installation Requirement
 
-The power assumes that Pants is installed inside the devcontainer. For the NACC repository, this is typically done by running:
-```bash
-devcontainer exec --workspace-folder . bash get-pants.sh
-```
+The power assumes that Pants is installed inside the devcontainer. The installation method depends on the specific project setup. Common approaches include:
+
+- Running an installation script (e.g., `devcontainer exec --workspace-folder . bash get-pants.sh`)
+- Installing via package manager in the Dockerfile
+- Using Pants' recommended installation method from https://www.pantsbuild.org/docs/installation
 
 The power should detect if Pants is not installed and provide helpful error messages guiding users to install it.
 
@@ -326,7 +327,7 @@ class PowerConfig:
     name: str = "pants-devcontainer-power"
     version: str = "0.1.0"
     description: str = "MCP tools for Pants build system with devcontainer integration"
-    python_version: str = "3.12"
+    python_version: str = "3.11+"
     repository_root: Path = Path(".")
     
     def validate(self) -> bool:
@@ -551,10 +552,9 @@ Pants not found in devcontainer
 
 Pants must be installed inside the devcontainer before using this power.
 
-For NACC repository, run:
-  devcontainer exec --workspace-folder . bash get-pants.sh
-
-For other repositories, see: https://www.pantsbuild.org/docs/installation
+Please install Pants according to your project's setup:
+- Check for an installation script in your repository
+- See https://www.pantsbuild.org/docs/installation for installation methods
 ```
 
 ### Graceful Degradation
@@ -677,7 +677,7 @@ Tests should run:
 
 Use realistic test data:
 
-- Valid Pants target specifications from actual NACC repository
+- Valid Pants target specifications from real projects
 - Real error messages from Pants and Docker
 - Actual devcontainer CLI output formats
 - Representative workflow sequences

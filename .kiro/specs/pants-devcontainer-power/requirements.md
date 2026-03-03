@@ -2,15 +2,15 @@
 
 ## Introduction
 
-The Pants DevContainer Power is a Kiro Power that provides MCP (Model Context Protocol) tools for managing the NACC Flywheel Extensions development workflow. This power eliminates friction by automatically wrapping Pants build system commands with devcontainer execution, ensuring all commands run in the proper containerized environment. It consolidates knowledge from multiple steering documents (tech.md, devcontainer.md, structure.md, versioning.md, product.md) into executable tools that enforce best practices and reduce manual overhead.
+The Pants DevContainer Power is a Kiro Power that provides MCP (Model Context Protocol) tools for managing development workflows that use Pants build system within devcontainers. This power eliminates friction by automatically wrapping Pants build system commands with devcontainer execution, ensuring all commands run in the proper containerized environment. It provides executable tools that enforce best practices and reduce manual overhead when working with Pants in containerized development environments.
 
 ## Glossary
 
 - **Power**: A Kiro extension that provides MCP tools for specific workflows
 - **MCP_Tool**: A Model Context Protocol tool that can be invoked by the AI assistant
-- **Pants**: The build system used by the NACC monorepo (v2.27.0)
+- **Pants**: A build system for Python, Java, Scala, and other languages that provides dependency management and build orchestration
 - **DevContainer**: A Docker-based development environment providing consistent tooling
-- **Container_Wrapper**: The bin/exec-in-devcontainer.sh script that executes commands inside the container
+- **Container_Wrapper**: A script that executes commands inside the devcontainer
 - **Workflow**: A sequence of related commands executed in order (e.g., fix → lint → check → test)
 - **Cache**: Pants internal state stored in .pants.d/ directory
 
@@ -110,8 +110,8 @@ The Pants DevContainer Power is a Kiro Power that provides MCP (Model Context Pr
 
 1. THE Power SHALL include a power.json manifest file that declares all MCP tools
 2. THE Power SHALL include a README.md file with installation and usage instructions
-3. THE Power SHALL include keywords: "pants", "build", "devcontainer", "workflow", "monorepo", "nacc"
-4. THE Power SHALL specify Python 3.12 as the required runtime environment
+3. THE Power SHALL include keywords: "pants", "build", "devcontainer", "workflow", "monorepo"
+4. THE Power SHALL specify Python 3.11 or higher as the required runtime environment
 5. THE Power SHALL require the devcontainer CLI to be installed (`npm install -g @devcontainers/cli`)
 
 ### Requirement 9: Idempotent Container Operations

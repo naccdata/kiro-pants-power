@@ -2,7 +2,7 @@
 
 ## Overview
 
-This implementation plan creates an MCP server that provides 15 tools for managing the NACC Flywheel Extensions development workflow. The power wraps Pants build system commands with automatic devcontainer execution using the devcontainer CLI directly, eliminating manual container management overhead.
+This implementation plan creates an MCP server that provides 15 tools for managing development workflows that use Pants build system within devcontainers. The power wraps Pants build system commands with automatic devcontainer execution using the devcontainer CLI directly, eliminating manual container management overhead.
 
 The implementation follows a bottom-up approach: core utilities first, then command execution, then MCP tools, then workflows, and finally testing and documentation.
 
@@ -336,8 +336,8 @@ The implementation follows a bottom-up approach: core utilities first, then comm
     - Set name: "pants-devcontainer-power"
     - Set version: "0.1.0"
     - Set description
-    - Set keywords: ["pants", "build", "devcontainer", "workflow", "monorepo", "nacc"]
-    - Set runtime: "python3.12"
+    - Set keywords: ["pants", "build", "devcontainer", "workflow", "monorepo"]
+    - Set runtime: "python3.11+"
     - _Requirements: 8.1, 8.3, 8.4_
   
   - [ ] 16.2 Define all 15 MCP tools in manifest
@@ -385,7 +385,7 @@ The implementation follows a bottom-up approach: core utilities first, then comm
     - Verify Property 12: Idempotent Container Start
   
   - [ ] 18.3 Manual testing with actual devcontainer
-    - Test power in NACC repository with real devcontainer
+    - Test power in a repository with real devcontainer
     - Verify all tools work with actual Pants commands
     - Test error scenarios (container not running, CLI not found, etc.)
     - Verify output formatting and streaming
