@@ -2,8 +2,7 @@
   "mcpServers": {
     "pants-devcontainer": {
       "command": "uvx",
-      "args": ["--from", ".", "pants-devcontainer-power"],
-      "cwd": "${powerDir}",
+      "args": ["--from", "git+https://github.com/naccdata/kiro-pants-power", "pants-devcontainer-power"],
       "env": {}
     }
   }

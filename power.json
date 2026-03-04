@@ -8,11 +8,6 @@
     "version": "3.12"
   },
   "entrypoint": "src/server.py",
-  "files": [
-    "src/**/*.py",
-    "pyproject.toml",
-    "uv.lock"
-  ],
   "tools": [
     {
       "name": "pants_fix",
