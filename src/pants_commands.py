@@ -137,6 +137,27 @@ class PantsCommands:
         command = self.command_builder.build_command("package", target)
         return self.container_manager.exec(command)
 
+    def pants_tailor(self, target: str | None = None) -> CommandResult:
+        """Generate or update BUILD files for source files.
+
+        Ensures the container is running, then executes "pants tailor <target>"
+        inside the container. Tailor automatically creates BUILD files with
+        appropriate targets for Python files, tests, and other source code.
+
+        Args:
+            target: Pants target specification (default: "::")
+
+        Returns:
+            CommandResult with the outcome of the tailor command
+
+        Examples:
+            >>> commands = PantsCommands()
+            >>> result = commands.pants_tailor()  # Tailor all directories
+            >>> result = commands.pants_tailor("src/python::")  # Tailor specific directory
+        """
+        command = self.command_builder.build_command("tailor", target)
+        return self.container_manager.exec(command)
+
 
     def pants_clear_cache(self) -> CommandResult:
         """Clear Pants cache to resolve filesystem issues.

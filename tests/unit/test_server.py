@@ -1,7 +1,6 @@
 """Unit tests for the MCP server implementation."""
 
 from pathlib import Path
-from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -64,9 +63,8 @@ class TestPowerConfig:
         with patch(
             "src.server.ContainerManager",
             side_effect=ContainerError("DevContainer CLI not found"),
-        ):
-            with pytest.raises(PowerError, match="DevContainer CLI not found"):
-                config.validate()
+        ), pytest.raises(PowerError, match="DevContainer CLI not found"):
+            config.validate()
 
 
 class TestPantsDevContainerServer:
@@ -131,9 +129,8 @@ class TestPantsDevContainerServer:
         with patch(
             "src.server.ContainerManager",
             side_effect=ContainerError("DevContainer CLI not found"),
-        ):
-            with pytest.raises(PowerError, match="DevContainer CLI not found"):
-                PantsDevContainerServer(config)
+        ), pytest.raises(PowerError, match="DevContainer CLI not found"):
+            PantsDevContainerServer(config)
 
     def test_server_creates_mcp_server_with_correct_name(self, mock_config: PowerConfig) -> None:
         """Test server creates MCP Server with config name."""

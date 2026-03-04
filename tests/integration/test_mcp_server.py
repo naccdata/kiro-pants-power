@@ -4,13 +4,13 @@ These tests verify that the MCP server initializes correctly, registers all tool
 and handles tool invocations with proper error handling and response formatting.
 """
 
-import pytest
 from pathlib import Path
-from unittest.mock import Mock, patch, AsyncMock
-from typing import Any
+from unittest.mock import Mock, patch
 
+import pytest
+
+from src.models import CommandResult, ContainerError, ValidationError, WorkflowResult
 from src.server import PantsDevContainerServer, PowerConfig
-from src.models import CommandResult, WorkflowResult, ContainerError, ValidationError
 
 
 class TestMCPServerInitialization:
@@ -163,14 +163,14 @@ class TestMCPToolInvocation:
              patch("src.server.PantsCommands") as mock_pants, \
              patch("src.server.ContainerLifecycle") as mock_lifecycle, \
              patch("src.server.WorkflowTools") as mock_workflow:
-            
+
             server = PantsDevContainerServer(config)
-            
+
             # Replace mocked components with real Mock objects we can control
             server.pants_commands = mock_pants.return_value
             server.container_lifecycle = mock_lifecycle.return_value
             server.workflow_tools = mock_workflow.return_value
-            
+
             return server
 
     @pytest.mark.asyncio
@@ -188,7 +188,7 @@ class TestMCPToolInvocation:
 
         # Test that the method can be called
         result = server.pants_commands.pants_fix(None)
-        
+
         assert result.success
         assert "Fixed 3 files" in result.stdout
 
@@ -206,7 +206,7 @@ class TestMCPToolInvocation:
 
         # Test that the method can be called with target
         result = server.pants_commands.pants_test("src/python::")
-        
+
         assert result.success
         assert "All tests passed" in result.stdout
 
@@ -251,7 +251,7 @@ class TestMCPToolInvocation:
 
         # Test that the method can be called
         result = server.workflow_tools.full_quality_check()
-        
+
         assert result.overall_success
         assert len(result.steps_completed) == 4
 
@@ -275,14 +275,14 @@ class TestMCPErrorHandling:
              patch("src.server.PantsCommands") as mock_pants, \
              patch("src.server.ContainerLifecycle") as mock_lifecycle, \
              patch("src.server.WorkflowTools") as mock_workflow:
-            
+
             server = PantsDevContainerServer(config)
-            
+
             # Replace mocked components with real Mock objects we can control
             server.pants_commands = mock_pants.return_value
             server.container_lifecycle = mock_lifecycle.return_value
             server.workflow_tools = mock_workflow.return_value
-            
+
             return server
 
     @pytest.mark.asyncio
@@ -296,7 +296,7 @@ class TestMCPErrorHandling:
         # Test that error is raised
         with pytest.raises(ContainerError) as exc_info:
             server.container_lifecycle.container_start()
-        
+
         assert "Docker daemon not running" in str(exc_info.value)
 
     @pytest.mark.asyncio
@@ -310,7 +310,7 @@ class TestMCPErrorHandling:
         # Test that error is raised
         with pytest.raises(ValidationError) as exc_info:
             server.container_lifecycle.container_exec("ls")
-        
+
         assert "Invalid command parameter" in str(exc_info.value)
 
     @pytest.mark.asyncio
@@ -328,7 +328,7 @@ class TestMCPErrorHandling:
 
         # Test that the method returns the failed result
         result = server.pants_commands.pants_test()
-        
+
         assert not result.success
         assert result.exit_code == 1
         assert "Test failed" in result.stderr
@@ -347,7 +347,7 @@ class TestMCPErrorHandling:
 
         # Test that the method returns the failed result
         result = server.workflow_tools.full_quality_check()
-        
+
         assert not result.overall_success
         assert result.failed_step == "check"
         assert "fix" in result.steps_completed

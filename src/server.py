@@ -210,6 +210,19 @@ class PantsDevContainerServer:
                     },
                 ),
                 Tool(
+                    name="pants_tailor",
+                    description="Generate or update BUILD files for source files",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "target": {
+                                "type": "string",
+                                "description": 'Pants target specification (default: "::")',
+                            }
+                        },
+                    },
+                ),
+                Tool(
                     name="container_start",
                     description="Start the devcontainer (idempotent)",
                     inputSchema={"type": "object", "properties": {}},
@@ -317,6 +330,10 @@ class PantsDevContainerServer:
 
                 elif name == "pants_package":
                     result = self.pants_commands.pants_package(arguments.get("target"))
+                    return self._format_command_result(result)
+
+                elif name == "pants_tailor":
+                    result = self.pants_commands.pants_tailor(arguments.get("target"))
                     return self._format_command_result(result)
 
                 elif name == "container_start":
@@ -463,7 +480,10 @@ async def async_main() -> None:
     except PowerError as e:
         # Check if this is a "devcontainer not found" error - exit gracefully
         error_msg = str(e)
-        if "DevContainer configuration not found" in error_msg or "DevContainer CLI not found" in error_msg:
+        if (
+            "DevContainer configuration not found" in error_msg
+            or "DevContainer CLI not found" in error_msg
+        ):
             # Exit silently with success code - this workspace doesn't need this power
             sys.exit(0)
         # For other PowerErrors, log and exit with error code
