@@ -461,6 +461,12 @@ async def async_main() -> None:
         server = PantsDevContainerServer(config)
         await server.run()
     except PowerError as e:
+        # Check if this is a "devcontainer not found" error - exit gracefully
+        error_msg = str(e)
+        if "DevContainer configuration not found" in error_msg or "DevContainer CLI not found" in error_msg:
+            # Exit silently with success code - this workspace doesn't need this power
+            sys.exit(0)
+        # For other PowerErrors, log and exit with error code
         print(f"Failed to start server: {e}", file=sys.stderr)
         sys.exit(1)
     except Exception as e:
