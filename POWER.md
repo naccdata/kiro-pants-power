@@ -12,11 +12,11 @@ author: "NACC Team"
 
 The Pants DevContainer power eliminates friction in the NACC Flywheel Extensions development workflow by automatically wrapping Pants build system commands with devcontainer execution. Instead of manually managing container lifecycle or remembering wrapper scripts, you can invoke Pants commands directly - the power handles all container management automatically.
 
-This power provides 15 MCP tools organized into four categories:
-- **Pants Commands** (5 tools): fix, lint, check, test, package
-- **Container Lifecycle** (5 tools): start, stop, rebuild, exec, shell
-- **Workflow Orchestration** (2 tools): full_quality_check, pants_workflow
-- **Utilities** (1 tool): clear_cache
+This power provides MCP tools organized into four categories:
+- **Pants Commands**: fix, lint, check, test, package
+- **Container Lifecycle**: start, stop, rebuild, exec, shell
+- **Workflow Orchestration**: full_quality_check, pants_workflow
+- **Utilities**: clear_cache
 
 All commands ensure the devcontainer is running before execution, providing consistent environment management and clear error messages when issues occur.
 

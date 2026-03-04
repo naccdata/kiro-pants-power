@@ -4,7 +4,7 @@ A Kiro Power that provides MCP (Model Context Protocol) tools for managing devel
 
 ## Overview
 
-The Pants DevContainer Power provides 13 MCP tools that handle the complexity of running Pants commands inside devcontainers. Instead of manually managing container lifecycle or remembering wrapper scripts, you can invoke Pants commands directly through the AI assistant, and the power handles all the container orchestration automatically.
+The Pants DevContainer Power provides MCP tools that handle the complexity of running Pants commands inside devcontainers. Instead of manually managing container lifecycle or remembering wrapper scripts, you can invoke Pants commands directly through the AI assistant, and the power handles all the container orchestration automatically.
 
 ### Key Features
 

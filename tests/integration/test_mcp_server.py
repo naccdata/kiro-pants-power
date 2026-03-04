@@ -129,8 +129,8 @@ class TestMCPToolRegistration:
         assert server.pants_commands is not None
 
     @pytest.mark.asyncio
-    async def test_server_registers_exactly_13_tools(self, server: PantsDevContainerServer) -> None:
-        """Test that server registers exactly 13 tools total."""
+    async def test_server_registers_all_tools(self, server: PantsDevContainerServer) -> None:
+        """Test that server registers all expected tools."""
         # Verify server initialized successfully with all components
         assert server.server is not None
         assert server.pants_commands is not None

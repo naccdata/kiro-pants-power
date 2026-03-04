@@ -84,11 +84,11 @@ class PowerConfig:
 class PantsDevContainerServer:
     """MCP server for Pants DevContainer Power.
 
-    This server exposes 13 MCP tools for managing Pants workflows in devcontainers:
-    - 5 Pants command tools (fix, lint, check, test, package)
-    - 5 container lifecycle tools (start, stop, rebuild, exec, shell)
-    - 2 workflow tools (full_quality_check, pants_workflow)
-    - 1 utility tool (pants_clear_cache)
+    This server exposes MCP tools for managing Pants workflows in devcontainers:
+    - Pants command tools (fix, lint, check, test, package)
+    - Container lifecycle tools (start, stop, rebuild, exec, shell)
+    - Workflow tools (full_quality_check, pants_workflow)
+    - Utility tools (pants_clear_cache)
 
     Attributes:
         config: PowerConfig instance
