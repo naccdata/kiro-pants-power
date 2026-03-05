@@ -660,6 +660,29 @@ tests/
     └── test_script_execution.py    # Actual script execution (optional, slow)
 ```
 
+### CRITICAL: Test Execution Commands
+
+**ALL test commands MUST use `uv run` prefix:**
+
+```bash
+# Run all tests
+uv run pytest
+
+# Run specific test file
+uv run pytest tests/unit/test_pants_commands.py -v
+
+# Run with coverage
+uv run pytest --cov=src --cov-report=html
+
+# Run property tests only
+uv run pytest -m property
+
+# Run unit tests only
+uv run pytest tests/unit/
+```
+
+**NEVER run `pytest` directly** - always use `uv run pytest`
+
 ### Coverage Goals
 
 - **Line coverage**: Minimum 90% for core logic

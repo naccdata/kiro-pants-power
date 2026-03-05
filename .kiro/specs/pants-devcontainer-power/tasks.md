@@ -1,5 +1,17 @@
 # Implementation Plan: Pants DevContainer Power
 
+## CRITICAL EXECUTION RULE
+
+**ALL Python commands MUST use `uv run` prefix**
+
+When implementing tasks, ALL test execution and Python script commands MUST be prefixed with `uv run`:
+- ✅ CORRECT: `uv run pytest tests/unit/test_models.py -v`
+- ❌ WRONG: `pytest tests/unit/test_models.py -v`
+- ✅ CORRECT: `uv run python src/server.py`
+- ❌ WRONG: `python src/server.py`
+
+This ensures consistent dependency resolution and environment isolation. Do NOT skip this prefix.
+
 ## Overview
 
 This implementation plan creates an MCP server that provides 15 tools for managing development workflows that use Pants build system within devcontainers. The power wraps Pants build system commands with automatic devcontainer execution using the devcontainer CLI directly, eliminating manual container management overhead.
@@ -401,6 +413,7 @@ The implementation follows a bottom-up approach: core utilities first, then comm
 
 ## Notes
 
+- **CRITICAL**: ALL Python commands MUST use `uv run` prefix (e.g., `uv run pytest`, NOT `pytest`)
 - Tasks marked with `*` are optional property-based and additional unit tests
 - Each task references specific requirements for traceability
 - Checkpoints ensure incremental validation at key milestones
