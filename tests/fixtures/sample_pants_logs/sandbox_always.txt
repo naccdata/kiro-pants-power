@@ -1,0 +1,6 @@
+12:34:56 [INFO] Completed: Run pytest - tests/test_auth.py::test_login_success
+12:34:56 [INFO] Preserving local process execution dir `/tmp/pants-sandbox-xyz789` for tests/test_auth.py::test_login_success
+12:34:57 [INFO] Completed: Run pytest - tests/test_auth.py::test_login_failure
+12:34:57 [INFO] Preserving local process execution dir `/tmp/pants-sandbox-def456` for tests/test_auth.py::test_login_failure
+12:34:58 [ERROR] Failed: Run pytest - tests/test_auth.py::test_logout
+12:34:58 [INFO] Preserving local process execution dir `/tmp/pants-sandbox-ghi789` for tests/test_auth.py::test_logout

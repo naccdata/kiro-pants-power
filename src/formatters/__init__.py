@@ -1,6 +1,16 @@
-"""Message formatting utilities for errors and success messages."""
+"""Formatters for structured output data."""
 
-from src.models import CommandExecutionError, CommandResult, ContainerError, ValidationError
+from src.formatters.config_formatter import ConfigurationPrettyPrinter
+from src.formatters.enhanced_error_formatter import EnhancedErrorFormatter
+
+# Legacy formatting functions for backward compatibility
+from src.models import (
+    CommandExecutionError,
+    CommandResult,
+    ContainerError,
+    EnhancedCommandResult,
+    ValidationError,
+)
 
 
 def format_container_error(error: ContainerError, command: str = "", output: str = "") -> str:
@@ -37,19 +47,30 @@ def format_command_execution_error(
     error: CommandExecutionError,
     command: str = "",
     exit_code: int | None = None,
-    output: str = ""
+    output: str = "",
+    result: CommandResult | EnhancedCommandResult | None = None
 ) -> str:
     """Format a CommandExecutionError with command details.
+
+    This function supports both legacy parameters and the new EnhancedCommandResult
+    type. When an EnhancedCommandResult is provided, it uses the enhanced formatted
+    summary. Otherwise, it falls back to the legacy formatting logic.
 
     Args:
         error: The CommandExecutionError exception
         command: The command that failed (if available)
         exit_code: The exit code from the failed command (if available)
         output: The output from the failed command (if available)
+        result: Optional CommandResult or EnhancedCommandResult with structured data
 
     Returns:
         A formatted error message with command details
     """
+    # If we have an EnhancedCommandResult with a formatted summary, use it
+    if isinstance(result, EnhancedCommandResult) and result.formatted_summary:
+        return result.formatted_summary
+
+    # Fall back to legacy formatting logic for backward compatibility
     formatted = f"Command execution failed: {command}" if command else "Command execution failed"
 
     if exit_code is not None:
@@ -93,18 +114,37 @@ def format_validation_error(
     return formatted
 
 
-def format_success(result: CommandResult) -> str:
+def format_success(result: CommandResult | EnhancedCommandResult) -> str:
     """Format a successful CommandResult with output.
 
+    This function supports both CommandResult and EnhancedCommandResult types.
+    When an EnhancedCommandResult is provided with a formatted summary, it uses
+    that summary. Otherwise, it falls back to the legacy formatting logic.
+
     Args:
-        result: The CommandResult from a successful command execution
+        result: The CommandResult or EnhancedCommandResult from a successful command execution
 
     Returns:
         A formatted success message with relevant output
     """
+    # If we have an EnhancedCommandResult with a formatted summary, use it
+    if isinstance(result, EnhancedCommandResult) and result.formatted_summary:
+        return result.formatted_summary
+
+    # Fall back to legacy formatting logic for backward compatibility
     if not result.output or result.output.strip() == "":
         # Handle empty output gracefully
         return f"Command completed successfully: {result.command}"
 
     # Include the output for commands that produce output
     return f"Command completed successfully: {result.command}\n\n{result.output}"
+
+
+__all__ = [
+    "ConfigurationPrettyPrinter",
+    "EnhancedErrorFormatter",
+    "format_command_execution_error",
+    "format_container_error",
+    "format_success",
+    "format_validation_error",
+]

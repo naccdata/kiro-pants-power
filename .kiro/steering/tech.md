@@ -4,6 +4,18 @@ inclusion: auto
 
 # Technology Stack
 
+## CRITICAL DEVELOPMENT RULE
+
+**ALL Python commands MUST use `uv run` prefix**
+
+When executing any Python-related command (tests, scripts, server, etc.), you MUST prefix it with `uv run`:
+- ✅ CORRECT: `uv run pytest`
+- ❌ WRONG: `pytest`
+- ✅ CORRECT: `uv run python src/server.py`
+- ❌ WRONG: `python src/server.py`
+
+This is non-negotiable for consistent dependency resolution and environment isolation.
+
 ## Build System
 
 - **Pants v2.27.0**: Modern build system for Python monorepos and multi-language projects
@@ -60,17 +72,24 @@ Before using this power, ensure:
 
 ## Development Workflow
 
-### Using uv (Recommended)
+### CRITICAL: Always Use uv for All Development Tasks
+
+**MANDATORY**: All Python commands MUST be executed using `uv run` prefix. This ensures consistent dependency resolution and environment isolation.
+
+### Using uv (REQUIRED)
 
 ```bash
 # Install dependencies
 uv sync
 
-# Run tests
+# Run tests (ALWAYS use uv run)
 uv run pytest
 
-# Run specific test file
+# Run specific test file (ALWAYS use uv run)
 uv run pytest tests/unit/test_models.py -v
+
+# Run with coverage (ALWAYS use uv run)
+uv run pytest --cov=src --cov-report=html
 
 # Add a new dependency
 uv add <package-name>
@@ -78,11 +97,18 @@ uv add <package-name>
 # Add a dev dependency
 uv add --dev <package-name>
 
-# Run the MCP server
+# Run the MCP server (ALWAYS use uv run)
 uv run python src/server.py
+
+# Run any Python script (ALWAYS use uv run)
+uv run python <script.py>
 ```
 
-### Using pip (Alternative)
+**NEVER run Python commands directly** (e.g., `pytest`, `python script.py`) - always prefix with `uv run`
+
+### Using pip (NOT RECOMMENDED - Use uv instead)
+
+**WARNING**: pip is significantly slower than uv and should only be used if uv is unavailable.
 
 ```bash
 # Create virtual environment

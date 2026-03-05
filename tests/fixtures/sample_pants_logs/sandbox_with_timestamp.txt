@@ -1,0 +1,4 @@
+2024-01-15T12:34:56.123456 [INFO] Completed: Run pytest - tests/test_auth.py::test_login_success
+2024-01-15T12:34:57.234567 [ERROR] Failed: Run pytest - tests/test_auth.py::test_login_failure
+2024-01-15T12:34:57.345678 [INFO] Preserving local process execution dir `/home/user/.cache/pants/named_caches/pex_root/sandbox-abc123` for tests/test_auth.py::test_login_failure
+2024-01-15T12:34:58.456789 [INFO] Completed: Run pytest - tests/test_database.py::test_connection

@@ -1,0 +1,9 @@
+[GLOBAL]
+pants_version = "2.18.0"
+backend_packages = [
+  "pants.backend.python",
+  "pants.backend.python.lint.black"
+  # Missing closing bracket
+
+[source]
+root_patterns = ["/"]

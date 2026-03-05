@@ -1,0 +1,8 @@
+12:34:56 [INFO] Completed: Run pytest - tests/test_auth.py::test_login_success
+12:34:57 [ERROR] Failed: Run pytest - tests/test_auth.py::test_login_failure
+12:34:57 [INFO] Preserving local process execution dir `/tmp/pants-sandbox-aaa111` for tests/test_auth.py::test_login_failure
+12:34:58 [ERROR] Failed: Run pytest - tests/test_auth.py::test_logout
+12:34:58 [INFO] Preserving local process execution dir `/tmp/pants-sandbox-bbb222` for tests/test_auth.py::test_logout
+12:34:59 [ERROR] Failed: Run pytest - tests/test_database.py::test_connection
+12:34:59 [INFO] Preserving local process execution dir `/tmp/pants-sandbox-ccc333` for tests/test_database.py::test_connection
+12:35:00 [INFO] Completed: Run pytest - tests/test_database.py::test_query

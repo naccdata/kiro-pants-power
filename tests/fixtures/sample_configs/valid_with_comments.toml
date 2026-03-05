@@ -1,0 +1,31 @@
+# Pants configuration for enhanced output capture project
+
+[GLOBAL]
+# Use the latest stable version
+pants_version = "2.18.0"
+
+# Enable Python backends
+backend_packages = [
+  "pants.backend.python",
+  "pants.backend.python.lint.black",
+  "pants.backend.python.typecheck.mypy",
+]
+
+[source]
+# Define source roots
+root_patterns = ["/"]
+
+[python]
+# Support Python 3.9 through 3.12
+interpreter_constraints = [">=3.9,<3.13"]
+
+[test]
+# Only show failed test output
+output = "failed"
+# Enable coverage by default
+use_coverage = true
+
+[coverage-py]
+# Generate multiple report formats
+report = ["console", "html", "json", "xml"]
+global_report = true

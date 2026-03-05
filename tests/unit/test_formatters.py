@@ -6,7 +6,14 @@ from src.formatters import (
     format_success,
     format_validation_error,
 )
-from src.models import CommandExecutionError, CommandResult, ContainerError, ValidationError
+from src.models import (
+    CommandExecutionError,
+    CommandResult,
+    ContainerError,
+    EnhancedCommandResult,
+    ParsedOutput,
+    ValidationError,
+)
 
 
 class TestFormatContainerError:
@@ -106,6 +113,83 @@ class TestFormatCommandExecutionError:
         result = format_command_execution_error(error)
 
         assert "Command execution failed" in result
+
+    def test_format_with_enhanced_command_result(self) -> None:
+        """Test formatting with EnhancedCommandResult uses formatted_summary."""
+        error = CommandExecutionError("Command failed")
+        enhanced_result = EnhancedCommandResult(
+            exit_code=1,
+            stdout="test output",
+            stderr="test error",
+            command="pants test ::",
+            success=False,
+            parsed_output=ParsedOutput(),
+            formatted_summary="Enhanced Error Summary:\nTest failures detected\nSee details above",
+            execution_time=1.5,
+        )
+
+        result = format_command_execution_error(
+            error,
+            command="pants test ::",
+            exit_code=1,
+            output="test output",
+            result=enhanced_result,
+        )
+
+        # Should use the formatted_summary from EnhancedCommandResult
+        assert result == "Enhanced Error Summary:\nTest failures detected\nSee details above"
+        assert "Enhanced Error Summary" in result
+        assert "Test failures detected" in result
+
+    def test_format_with_regular_command_result_fallback(self) -> None:
+        """Test formatting with regular CommandResult falls back to legacy format."""
+        error = CommandExecutionError("Command failed")
+        regular_result = CommandResult(
+            exit_code=1,
+            stdout="test output",
+            stderr="test error",
+            command="pants test ::",
+            success=False,
+        )
+
+        result = format_command_execution_error(
+            error,
+            command="pants test ::",
+            exit_code=1,
+            output="test output",
+            result=regular_result,
+        )
+
+        # Should use legacy formatting
+        assert "Command execution failed: pants test ::" in result
+        assert "Exit code: 1" in result
+        assert "Output:" in result
+
+    def test_format_with_enhanced_result_empty_summary(self) -> None:
+        """Test formatting with EnhancedCommandResult but empty summary falls back."""
+        error = CommandExecutionError("Command failed")
+        enhanced_result = EnhancedCommandResult(
+            exit_code=1,
+            stdout="test output",
+            stderr="test error",
+            command="pants test ::",
+            success=False,
+            parsed_output=ParsedOutput(),
+            formatted_summary="",  # Empty summary
+            execution_time=1.5,
+        )
+
+        result = format_command_execution_error(
+            error,
+            command="pants test ::",
+            exit_code=1,
+            output="test output",
+            result=enhanced_result,
+        )
+
+        # Should fall back to legacy formatting when summary is empty
+        assert "Command execution failed: pants test ::" in result
+        assert "Exit code: 1" in result
 
 
 class TestFormatValidationError:
@@ -244,3 +328,58 @@ class TestFormatSuccess:
         assert "Command completed successfully: pants test ::" in formatted
         assert "Tests completed" in formatted
         assert "Warning: slow test detected" in formatted
+
+    def test_format_success_with_enhanced_result(self) -> None:
+        """Test formatting success with EnhancedCommandResult uses formatted_summary."""
+        enhanced_result = EnhancedCommandResult(
+            exit_code=0,
+            stdout="All tests passed",
+            stderr="",
+            command="pants test ::",
+            success=True,
+            parsed_output=ParsedOutput(),
+            formatted_summary="Test Results: 10 passed, 0 failed\nAll tests completed successfully",
+            execution_time=2.5,
+        )
+
+        formatted = format_success(enhanced_result)
+
+        # Should use the formatted_summary from EnhancedCommandResult
+        assert formatted == "Test Results: 10 passed, 0 failed\nAll tests completed successfully"
+        assert "Test Results: 10 passed, 0 failed" in formatted
+
+    def test_format_success_with_enhanced_result_empty_summary(self) -> None:
+        """Test formatting success with EnhancedCommandResult but empty summary falls back."""
+        enhanced_result = EnhancedCommandResult(
+            exit_code=0,
+            stdout="All tests passed",
+            stderr="",
+            command="pants test ::",
+            success=True,
+            parsed_output=ParsedOutput(),
+            formatted_summary="",  # Empty summary
+            execution_time=2.5,
+        )
+
+        formatted = format_success(enhanced_result)
+
+        # Should fall back to legacy formatting
+        assert "Command completed successfully: pants test ::" in formatted
+        assert "All tests passed" in formatted
+
+    def test_format_success_with_regular_result(self) -> None:
+        """Test formatting success with regular CommandResult uses legacy format."""
+        result = CommandResult(
+            exit_code=0,
+            stdout="Tests passed",
+            stderr="",
+            command="pants test ::",
+            success=True,
+        )
+
+        formatted = format_success(result)
+
+        # Should use legacy formatting
+        assert "Command completed successfully: pants test ::" in formatted
+        assert "Tests passed" in formatted
+

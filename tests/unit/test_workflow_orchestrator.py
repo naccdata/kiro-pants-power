@@ -182,14 +182,16 @@ class TestWorkflowOrchestrator:
     def test_execute_workflow_with_progress_callback(
         self, orchestrator: WorkflowOrchestrator, mock_pants_commands: Any
     ) -> None:
-        """Test execute_workflow calls progress callback before each step."""
+        """Test execute_workflow calls progress callback after each step with result."""
         # Setup mock to return success
-        mock_pants_commands.pants_fix.return_value = CommandResult(
+        fix_result = CommandResult(
             exit_code=0, stdout="Fixed", stderr="", command="pants fix ::", success=True
         )
-        mock_pants_commands.pants_lint.return_value = CommandResult(
+        lint_result = CommandResult(
             exit_code=0, stdout="Linted", stderr="", command="pants lint ::", success=True
         )
+        mock_pants_commands.pants_fix.return_value = fix_result
+        mock_pants_commands.pants_lint.return_value = lint_result
 
         # Create mock progress callback
         progress_callback = Mock()
@@ -201,22 +203,24 @@ class TestWorkflowOrchestrator:
 
         assert result.overall_success is True
 
-        # Verify progress callback was called for each step
+        # Verify progress callback was called for each step with step name and result
         assert progress_callback.call_count == 2
-        progress_callback.assert_any_call("Executing step: fix")
-        progress_callback.assert_any_call("Executing step: lint")
+        progress_callback.assert_any_call("fix", fix_result)
+        progress_callback.assert_any_call("lint", lint_result)
 
     def test_execute_workflow_progress_callback_on_failure(
         self, orchestrator: WorkflowOrchestrator, mock_pants_commands: Any
     ) -> None:
         """Test progress callback is called even when step fails."""
         # Setup mock: fix succeeds, lint fails
-        mock_pants_commands.pants_fix.return_value = CommandResult(
+        fix_result = CommandResult(
             exit_code=0, stdout="Fixed", stderr="", command="pants fix ::", success=True
         )
-        mock_pants_commands.pants_lint.return_value = CommandResult(
+        lint_result = CommandResult(
             exit_code=1, stdout="", stderr="Errors", command="pants lint ::", success=False
         )
+        mock_pants_commands.pants_fix.return_value = fix_result
+        mock_pants_commands.pants_lint.return_value = lint_result
 
         progress_callback = Mock()
 
@@ -229,8 +233,8 @@ class TestWorkflowOrchestrator:
 
         # Verify progress callback was called for fix and lint (not check)
         assert progress_callback.call_count == 2
-        progress_callback.assert_any_call("Executing step: fix")
-        progress_callback.assert_any_call("Executing step: lint")
+        progress_callback.assert_any_call("fix", fix_result)
+        progress_callback.assert_any_call("lint", lint_result)
 
     def test_execute_workflow_invalid_step_name(
         self, orchestrator: WorkflowOrchestrator, mock_pants_commands: Any
@@ -294,3 +298,162 @@ class TestWorkflowOrchestrator:
 
         assert "Workflow failed at step: lint" in result.summary
         assert "Steps completed before failure: fix" in result.summary
+
+    def test_execute_workflow_returns_enhanced_result_with_callback(
+        self, orchestrator: WorkflowOrchestrator, mock_pants_commands: Any
+    ) -> None:
+        """Test execute_workflow returns EnhancedWorkflowResult when callback provided."""
+        from src.models import EnhancedWorkflowResult
+
+        # Setup mock to return success
+        mock_pants_commands.pants_fix.return_value = CommandResult(
+            exit_code=0, stdout="Fixed", stderr="", command="pants fix ::", success=True
+        )
+        mock_pants_commands.pants_lint.return_value = CommandResult(
+            exit_code=0, stdout="Linted", stderr="", command="pants lint ::", success=True
+        )
+
+        progress_callback = Mock()
+
+        result = orchestrator.execute_workflow(
+            ["fix", "lint"],
+            progress_callback=progress_callback
+        )
+
+        # Should return EnhancedWorkflowResult when callback is provided
+        assert isinstance(result, EnhancedWorkflowResult)
+        assert hasattr(result, 'step_timings')
+        assert hasattr(result, 'enhanced_results')
+        assert hasattr(result, 'workflow_summary')
+
+    def test_execute_workflow_returns_regular_result_without_callback(
+        self, orchestrator: WorkflowOrchestrator, mock_pants_commands: Any
+    ) -> None:
+        """Test execute_workflow returns WorkflowResult when no callback provided."""
+        from src.models import EnhancedWorkflowResult, WorkflowResult
+
+        # Setup mock to return success
+        mock_pants_commands.pants_fix.return_value = CommandResult(
+            exit_code=0, stdout="Fixed", stderr="", command="pants fix ::", success=True
+        )
+
+        result = orchestrator.execute_workflow(["fix"])
+
+        # Should return regular WorkflowResult when no callback
+        assert isinstance(result, WorkflowResult)
+        assert not isinstance(result, EnhancedWorkflowResult)
+
+    def test_enhanced_workflow_result_includes_step_timings(
+        self, orchestrator: WorkflowOrchestrator, mock_pants_commands: Any
+    ) -> None:
+        """Test EnhancedWorkflowResult includes timing for each step."""
+        from src.models import EnhancedWorkflowResult
+
+        # Setup mock to return success
+        mock_pants_commands.pants_fix.return_value = CommandResult(
+            exit_code=0, stdout="Fixed", stderr="", command="pants fix ::", success=True
+        )
+        mock_pants_commands.pants_lint.return_value = CommandResult(
+            exit_code=0, stdout="Linted", stderr="", command="pants lint ::", success=True
+        )
+
+        progress_callback = Mock()
+
+        result = orchestrator.execute_workflow(
+            ["fix", "lint"],
+            progress_callback=progress_callback
+        )
+
+        assert isinstance(result, EnhancedWorkflowResult)
+        assert "fix" in result.step_timings
+        assert "lint" in result.step_timings
+        assert result.step_timings["fix"] >= 0
+        assert result.step_timings["lint"] >= 0
+
+    def test_enhanced_workflow_result_includes_workflow_summary(
+        self, orchestrator: WorkflowOrchestrator, mock_pants_commands: Any
+    ) -> None:
+        """Test EnhancedWorkflowResult includes formatted workflow summary."""
+        from src.models import EnhancedWorkflowResult
+
+        # Setup mock to return success
+        mock_pants_commands.pants_fix.return_value = CommandResult(
+            exit_code=0, stdout="Fixed", stderr="", command="pants fix ::", success=True
+        )
+        mock_pants_commands.pants_lint.return_value = CommandResult(
+            exit_code=0, stdout="Linted", stderr="", command="pants lint ::", success=True
+        )
+
+        progress_callback = Mock()
+
+        result = orchestrator.execute_workflow(
+            ["fix", "lint"],
+            progress_callback=progress_callback
+        )
+
+        assert isinstance(result, EnhancedWorkflowResult)
+        assert result.workflow_summary
+        assert "Workflow completed successfully" in result.workflow_summary
+        assert "fix, lint" in result.workflow_summary
+        assert "Step Timings:" in result.workflow_summary
+        assert "Total execution time:" in result.workflow_summary
+
+    def test_enhanced_workflow_summary_on_failure(
+        self, orchestrator: WorkflowOrchestrator, mock_pants_commands: Any
+    ) -> None:
+        """Test workflow summary includes failure diagnostics."""
+        from src.models import EnhancedWorkflowResult
+
+        # Setup mock: fix succeeds, lint fails
+        mock_pants_commands.pants_fix.return_value = CommandResult(
+            exit_code=0, stdout="Fixed", stderr="", command="pants fix ::", success=True
+        )
+        mock_pants_commands.pants_lint.return_value = CommandResult(
+            exit_code=1,
+            stdout="",
+            stderr="Linting errors found",
+            command="pants lint ::",
+            success=False
+        )
+
+        progress_callback = Mock()
+
+        result = orchestrator.execute_workflow(
+            ["fix", "lint", "check"],
+            progress_callback=progress_callback
+        )
+
+        assert isinstance(result, EnhancedWorkflowResult)
+        assert "Workflow failed at step: lint" in result.workflow_summary
+        assert "Steps completed before failure: fix" in result.workflow_summary
+        assert "Failed Step Diagnostics (lint):" in result.workflow_summary
+        assert "Exit code: 1" in result.workflow_summary
+        assert "Linting errors found" in result.workflow_summary
+
+    def test_enhanced_workflow_step_timings_on_failure(
+        self, orchestrator: WorkflowOrchestrator, mock_pants_commands: Any
+    ) -> None:
+        """Test step timings include failed step."""
+        from src.models import EnhancedWorkflowResult
+
+        # Setup mock: fix succeeds, lint fails
+        mock_pants_commands.pants_fix.return_value = CommandResult(
+            exit_code=0, stdout="Fixed", stderr="", command="pants fix ::", success=True
+        )
+        mock_pants_commands.pants_lint.return_value = CommandResult(
+            exit_code=1, stdout="", stderr="Errors", command="pants lint ::", success=False
+        )
+
+        progress_callback = Mock()
+
+        result = orchestrator.execute_workflow(
+            ["fix", "lint", "check"],
+            progress_callback=progress_callback
+        )
+
+        assert isinstance(result, EnhancedWorkflowResult)
+        # Should have timings for both fix and lint (including failed step)
+        assert "fix" in result.step_timings
+        assert "lint" in result.step_timings
+        # Should NOT have timing for check (not executed)
+        assert "check" not in result.step_timings

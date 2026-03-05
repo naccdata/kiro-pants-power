@@ -1,0 +1,51 @@
+[GLOBAL]
+pants_version = "2.18.0"
+backend_packages = [
+  "pants.backend.python",
+  "pants.backend.python.lint.black",
+  "pants.backend.python.lint.flake8",
+  "pants.backend.python.lint.isort",
+  "pants.backend.python.typecheck.mypy",
+  "pants.backend.docker",
+]
+colors = true
+level = "info"
+
+[source]
+root_patterns = ["/src", "/tests"]
+
+[python]
+interpreter_constraints = [">=3.9,<3.13"]
+enable_resolves = true
+default_resolve = "python-default"
+
+[python.resolves]
+python-default = "requirements.txt"
+python-test = "test-requirements.txt"
+
+[test]
+output = "failed"
+use_coverage = true
+extra_env_vars = ["CI=true", "PYTEST_TIMEOUT=300"]
+
+[coverage-py]
+report = ["console", "html", "json", "xml"]
+global_report = true
+fail_under = 80.0
+output_dir = "dist/coverage"
+
+[mypy]
+config = "mypy.ini"
+args = ["--strict", "--show-error-codes"]
+
+[black]
+config = "pyproject.toml"
+args = ["--line-length=100"]
+
+[flake8]
+config = ".flake8"
+args = ["--max-line-length=100"]
+
+[isort]
+config = "pyproject.toml"
+args = ["--profile=black"]

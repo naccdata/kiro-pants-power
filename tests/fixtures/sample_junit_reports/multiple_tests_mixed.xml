@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<testsuites>
+  <testsuite name="pytest" errors="0" failures="2" skipped="1" tests="5" time="1.456" timestamp="2024-01-15T10:30:00" hostname="test-host">
+    <testcase classname="tests.test_calculator" name="test_add" time="0.012" />
+    <testcase classname="tests.test_calculator" name="test_subtract" time="0.015" />
+    <testcase classname="tests.test_calculator" name="test_multiply" time="0.018">
+      <failure message="AssertionError: assert 6 == 7">def test_multiply():
+&gt;       assert calculator.multiply(2, 3) == 7
+E       assert 6 == 7
+
+tests/test_calculator.py:15: AssertionError</failure>
+    </testcase>
+    <testcase classname="tests.test_calculator" name="test_divide" time="0.021">
+      <failure message="ZeroDivisionError: division by zero">def test_divide():
+&gt;       result = calculator.divide(10, 0)
+E       ZeroDivisionError: division by zero
+
+tests/test_calculator.py:20: ZeroDivisionError</failure>
+    </testcase>
+    <testcase classname="tests.test_calculator" name="test_power" time="0.000">
+      <skipped message="Not implemented yet" type="pytest.skip" />
+    </testcase>
+  </testsuite>
+</testsuites>

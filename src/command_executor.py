@@ -4,6 +4,7 @@ import subprocess
 from collections.abc import Iterator
 
 from src.models import CommandExecutionError, CommandResult
+from src.output_buffer import OutputBuffer
 
 
 class CommandExecutor:
@@ -51,7 +52,9 @@ class CommandExecutor:
         """Execute a command and yield output lines as they arrive.
 
         This method streams both stdout and stderr in real-time as the command
-        executes, then returns the final CommandResult after completion.
+        executes, while also buffering the output for final parsing. The output
+        is captured using OutputBuffer to maintain chronological order and enable
+        both real-time display and post-execution parsing.
 
         Args:
             command: The shell command to execute
@@ -63,8 +66,17 @@ class CommandExecutor:
 
         Raises:
             CommandExecutionError: If the subprocess execution fails
+
+        Requirements:
+            - 8.1: Stream console output in real-time
+            - 8.2: Preserve output ordering (stdout and stderr interleaved correctly)
+            - 8.3: Buffer output for both real-time display and final parsing
+            - 8.4: Indicate command progress through incremental output updates
         """
         try:
+            # Create OutputBuffer for dual capture (streaming + buffering)
+            buffer = OutputBuffer()
+
             process = subprocess.Popen(
                 command,
                 shell=True,
@@ -75,16 +87,13 @@ class CommandExecutor:
                 bufsize=1  # Line buffered
             )
 
-            stdout_lines = []
-            stderr_lines = []
-
             # Read stdout and stderr until process completes
             # Note: This simplified implementation reads stdout first, then stderr
             # A production implementation might use select/threading for true interleaving
             if process.stdout:
                 for line in process.stdout:
                     line = line.rstrip('\n')
-                    stdout_lines.append(line)
+                    buffer.append_line(line, "stdout")
                     yield line
 
             # Wait for process to complete and get stderr
@@ -95,13 +104,17 @@ class CommandExecutor:
                 if stderr_content:
                     stderr_lines = stderr_content.splitlines()
                     for line in stderr_lines:
+                        buffer.append_line(line, "stderr")
                         yield line
 
-            # Yield final CommandResult
+            # Get complete output from buffer for final CommandResult
+            stdout, stderr = buffer.get_complete_output()
+
+            # Yield final CommandResult with buffered output
             result = CommandResult(
                 exit_code=process.returncode,
-                stdout='\n'.join(stdout_lines),
-                stderr='\n'.join(stderr_lines),
+                stdout=stdout,
+                stderr=stderr,
                 command=command,
                 success=process.returncode == 0
             )

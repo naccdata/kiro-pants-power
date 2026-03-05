@@ -1,0 +1,9 @@
+[GLOBAL]
+pants_version = "2.18.0"
+backend_packages = "pants.backend.python"  # Should be a list, not a string
+
+[source]
+root_patterns = ["/"]
+
+[python]
+interpreter_constraints = ">=3.9,<3.13"  # Should be a list, not a string
