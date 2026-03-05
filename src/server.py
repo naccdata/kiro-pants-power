@@ -506,6 +506,11 @@ async def async_main() -> None:
         print(f"Failed to start server: {e}", file=sys.stderr)
         sys.exit(1)
     except Exception as e:
+        # Check if this is a connection closed error (expected during shutdown/uninstall)
+        error_msg = str(e)
+        if "Connection closed" in error_msg or "connection closed" in error_msg.lower():
+            # Exit silently - this is expected when the power is uninstalled or connection is terminated
+            sys.exit(0)
         print(f"Unexpected error: {e}", file=sys.stderr)
         sys.exit(1)
 
