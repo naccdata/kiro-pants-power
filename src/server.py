@@ -42,6 +42,10 @@ class PowerConfig:
         description: Power description
         python_version: Required Python version
         repository_root: Path to repository root
+        report_output_dir: Directory where Pants generates report files (JUnit XML, coverage)
+        max_errors_per_category: Maximum number of errors to show per category in formatted output
+        enable_verbose_parsing: Whether to include detailed parsing error messages in output
+        keep_sandboxes: Pants sandbox preservation mode ("always", "on_failure", "never")
     """
 
     def __init__(
@@ -51,6 +55,10 @@ class PowerConfig:
         description: str = "MCP tools for Pants build system with devcontainer integration",
         python_version: str = "3.12+",
         repository_root: Path | None = None,
+        report_output_dir: str = "dist/test-reports",
+        max_errors_per_category: int = 10,
+        enable_verbose_parsing: bool = False,
+        keep_sandboxes: str = "on_failure",
     ):
         """Initialize PowerConfig.
 
@@ -60,12 +68,20 @@ class PowerConfig:
             description: Power description
             python_version: Required Python version
             repository_root: Path to repository root (uses current directory if None)
+            report_output_dir: Directory where Pants generates report files (default: "dist/test-reports")
+            max_errors_per_category: Maximum number of errors to show per category (default: 10)
+            enable_verbose_parsing: Whether to include detailed parsing error messages (default: False)
+            keep_sandboxes: Pants sandbox preservation mode - "always", "on_failure", or "never" (default: "on_failure")
         """
         self.name = name
         self.version = version
         self.description = description
         self.python_version = python_version
         self.repository_root = repository_root or Path.cwd()
+        self.report_output_dir = report_output_dir
+        self.max_errors_per_category = max_errors_per_category
+        self.enable_verbose_parsing = enable_verbose_parsing
+        self.keep_sandboxes = keep_sandboxes
 
     def validate(self) -> None:
         """Validate that prerequisites are met.
