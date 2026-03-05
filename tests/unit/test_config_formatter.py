@@ -21,10 +21,10 @@ class TestConfigurationPrettyPrinter:
             comments={},
             source_file="pants.toml"
         )
-        
+
         formatter = ConfigurationPrettyPrinter()
         toml_str = formatter.format_config(config)
-        
+
         # Verify it's valid TOML
         parsed = tomllib.loads(toml_str)
         assert "GLOBAL" in parsed
@@ -48,15 +48,15 @@ class TestConfigurationPrettyPrinter:
             },
             source_file="pants.toml"
         )
-        
+
         formatter = ConfigurationPrettyPrinter()
         toml_str = formatter.format_config(config)
-        
+
         # Verify comments are present
         assert "# Global configuration" in toml_str
         assert "# Version of Pants to use" in toml_str
         assert "# Python configuration" in toml_str
-        
+
         # Verify it's still valid TOML
         # Remove comments for parsing
         lines = [line for line in toml_str.split("\n") if not line.strip().startswith("#")]
@@ -71,10 +71,10 @@ class TestConfigurationPrettyPrinter:
             comments={},
             source_file="pants.toml"
         )
-        
+
         formatter = ConfigurationPrettyPrinter()
         toml_str = formatter.format_config(config)
-        
+
         # Should produce valid (empty) TOML
         parsed = tomllib.loads(toml_str)
         assert len(parsed) == 0
@@ -94,10 +94,10 @@ class TestConfigurationPrettyPrinter:
             comments={},
             source_file="pants.toml"
         )
-        
+
         formatter = ConfigurationPrettyPrinter()
         toml_str = formatter.format_config(config)
-        
+
         # Verify it's valid TOML
         parsed = tomllib.loads(toml_str)
         assert len(parsed["GLOBAL"]["backend_packages"]) == 3
@@ -116,10 +116,10 @@ class TestConfigurationPrettyPrinter:
             comments={},
             source_file="pants.toml"
         )
-        
+
         formatter = ConfigurationPrettyPrinter()
         toml_str = formatter.format_config(config)
-        
+
         # Verify it's valid TOML
         parsed = tomllib.loads(toml_str)
         assert "python.resolves" in parsed
@@ -138,10 +138,10 @@ class TestConfigurationPrettyPrinter:
             },
             source_file="pants.toml"
         )
-        
+
         formatter = ConfigurationPrettyPrinter()
         toml_str = formatter.format_config(config)
-        
+
         # Verify multiline comments are present
         assert "# Global configuration" in toml_str
         assert "# This section contains global settings" in toml_str
@@ -150,9 +150,9 @@ class TestConfigurationPrettyPrinter:
         """Test preserve_comments with empty comments dict."""
         formatter = ConfigurationPrettyPrinter()
         formatted = "[GLOBAL]\npants_version = \"2.18.0\"\n"
-        
+
         result = formatter.preserve_comments(formatted, {})
-        
+
         # Should return unchanged
         assert result == formatted
 
@@ -170,10 +170,10 @@ class TestConfigurationPrettyPrinter:
             comments={},
             source_file="pants.toml"
         )
-        
+
         formatter = ConfigurationPrettyPrinter()
         toml_str = formatter.format_config(config)
-        
+
         # Verify it's valid TOML
         parsed = tomllib.loads(toml_str)
         assert parsed["anonymous-telemetry"]["enabled"] is False
@@ -191,10 +191,10 @@ class TestConfigurationPrettyPrinter:
             comments={},
             source_file="pants.toml"
         )
-        
+
         formatter = ConfigurationPrettyPrinter()
         toml_str = formatter.format_config(config)
-        
+
         # Verify it's valid TOML
         parsed = tomllib.loads(toml_str)
         assert parsed["test"]["timeout_default"] == 60

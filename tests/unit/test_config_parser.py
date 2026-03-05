@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from src.models import Configuration, ConfigValidationError
+from src.models import Configuration
 from src.parsers.config_parser import ConfigurationParser
 
 
@@ -25,11 +25,11 @@ interpreter_constraints = [">=3.12"]
         with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as f:
             f.write(config_content)
             config_path = f.name
-        
+
         try:
             parser = ConfigurationParser()
             config = parser.parse_config(config_path)
-            
+
             assert isinstance(config, Configuration)
             assert "GLOBAL" in config.sections
             assert "python" in config.sections
@@ -54,11 +54,11 @@ interpreter_constraints = [">=3.12"]
         with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as f:
             f.write(config_content)
             config_path = f.name
-        
+
         try:
             parser = ConfigurationParser()
             config = parser.parse_config(config_path)
-            
+
             assert "GLOBAL" in config.comments
             assert "Global configuration" in config.comments["GLOBAL"]
             assert "GLOBAL.pants_version" in config.comments
@@ -69,7 +69,7 @@ interpreter_constraints = [">=3.12"]
     def test_parse_nonexistent_file(self) -> None:
         """Test parsing a file that doesn't exist."""
         parser = ConfigurationParser()
-        
+
         with pytest.raises(FileNotFoundError):
             parser.parse_config("/nonexistent/path/pants.toml")
 
@@ -82,13 +82,13 @@ pants_version = "2.18.0"
         with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as f:
             f.write(config_content)
             config_path = f.name
-        
+
         try:
             parser = ConfigurationParser()
-            
+
             with pytest.raises(ValueError) as exc_info:
                 parser.parse_config(config_path)
-            
+
             assert "Invalid TOML syntax" in str(exc_info.value)
         finally:
             Path(config_path).unlink()
@@ -96,15 +96,15 @@ pants_version = "2.18.0"
     def test_parse_empty_config(self) -> None:
         """Test parsing an empty config file."""
         config_content = ""
-        
+
         with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as f:
             f.write(config_content)
             config_path = f.name
-        
+
         try:
             parser = ConfigurationParser()
             config = parser.parse_config(config_path)
-            
+
             assert isinstance(config, Configuration)
             assert len(config.sections) == 0
         finally:
@@ -125,10 +125,10 @@ pants_version = "2.18.0"
             comments={},
             source_file="pants.toml"
         )
-        
+
         parser = ConfigurationParser()
         errors = parser.validate_config(config)
-        
+
         # Should have no errors for known sections
         assert len(errors) == 0
 
@@ -143,10 +143,10 @@ pants_version = "2.18.0"
             comments={},
             source_file="pants.toml"
         )
-        
+
         parser = ConfigurationParser()
         errors = parser.validate_config(config)
-        
+
         # Should detect unknown section
         assert len(errors) > 0
         assert any("UNKNOWN_SECTION" in error.section for error in errors)
@@ -165,10 +165,10 @@ pants_version = "2.18.0"
             comments={},
             source_file="pants.toml"
         )
-        
+
         parser = ConfigurationParser()
         errors = parser.validate_config(config)
-        
+
         # Should not flag subsystem sections as errors
         assert len(errors) == 0
 
@@ -185,11 +185,11 @@ backend_packages = [
         with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as f:
             f.write(config_content)
             config_path = f.name
-        
+
         try:
             parser = ConfigurationParser()
             config = parser.parse_config(config_path)
-            
+
             assert len(config.sections["GLOBAL"]["backend_packages"]) == 3
             assert "pants.backend.python" in config.sections["GLOBAL"]["backend_packages"]
         finally:
@@ -207,11 +207,11 @@ python-default = [">=3.12"]
         with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as f:
             f.write(config_content)
             config_path = f.name
-        
+
         try:
             parser = ConfigurationParser()
             config = parser.parse_config(config_path)
-            
+
             # TOML parses [python.resolves] as nested dict under python
             assert "python" in config.sections
             assert "resolves" in config.sections["python"]

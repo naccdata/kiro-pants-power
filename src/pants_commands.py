@@ -74,19 +74,19 @@ class PantsCommands:
         """
         # Build base command
         base_command = self.command_builder.build_command("fix", target)
-        
+
         # Add sandbox preservation flag
         command = f"{base_command} --keep-sandboxes={self.keep_sandboxes}"
-        
+
         # Execute command and measure time
         start_time = time.time()
         result = self.container_manager.exec(command)
         execution_time = time.time() - start_time
-        
+
         # If no parser/formatter configured, return basic result
         if not self.parser_router or not self.formatter:
             return result
-        
+
         # Parse output (mainly for sandbox extraction)
         try:
             parsed_output = self.parser_router.parse_command_output(
@@ -97,14 +97,14 @@ class PantsCommands:
         except Exception as e:
             logger.error(f"Failed to parse command output: {e}")
             parsed_output = ParsedOutput(parsing_errors=[str(e)])
-        
+
         # Format summary
         try:
             formatted_summary = self.formatter.format_parsed_output(parsed_output)
         except Exception as e:
             logger.error(f"Failed to format parsed output: {e}")
             formatted_summary = f"Formatting error: {e}\n\nRaw output:\n{result.output}"
-        
+
         # Return enhanced result
         return EnhancedCommandResult(
             exit_code=result.exit_code,
@@ -138,19 +138,19 @@ class PantsCommands:
         """
         # Build base command
         base_command = self.command_builder.build_command("lint", target)
-        
+
         # Add sandbox preservation flag
         command = f"{base_command} --keep-sandboxes={self.keep_sandboxes}"
-        
+
         # Execute command and measure time
         start_time = time.time()
         result = self.container_manager.exec(command)
         execution_time = time.time() - start_time
-        
+
         # If no parser/formatter configured, return basic result
         if not self.parser_router or not self.formatter:
             return result
-        
+
         # Parse output (mainly for sandbox extraction)
         try:
             parsed_output = self.parser_router.parse_command_output(
@@ -161,14 +161,14 @@ class PantsCommands:
         except Exception as e:
             logger.error(f"Failed to parse command output: {e}")
             parsed_output = ParsedOutput(parsing_errors=[str(e)])
-        
+
         # Format summary
         try:
             formatted_summary = self.formatter.format_parsed_output(parsed_output)
         except Exception as e:
             logger.error(f"Failed to format parsed output: {e}")
             formatted_summary = f"Formatting error: {e}\n\nRaw output:\n{result.output}"
-        
+
         # Return enhanced result
         return EnhancedCommandResult(
             exit_code=result.exit_code,
@@ -202,19 +202,19 @@ class PantsCommands:
         """
         # Build base command
         base_command = self.command_builder.build_command("check", target)
-        
+
         # Add sandbox preservation flag
         command = f"{base_command} --keep-sandboxes={self.keep_sandboxes}"
-        
+
         # Execute command and measure time
         start_time = time.time()
         result = self.container_manager.exec(command)
         execution_time = time.time() - start_time
-        
+
         # If no parser/formatter configured, return basic result
         if not self.parser_router or not self.formatter:
             return result
-        
+
         # Parse output
         try:
             parsed_output = self.parser_router.parse_command_output(
@@ -226,14 +226,14 @@ class PantsCommands:
             logger.error(f"Failed to parse command output: {e}")
             # Return basic result on parsing failure
             parsed_output = ParsedOutput(parsing_errors=[str(e)])
-        
+
         # Format summary
         try:
             formatted_summary = self.formatter.format_parsed_output(parsed_output)
         except Exception as e:
             logger.error(f"Failed to format parsed output: {e}")
             formatted_summary = f"Formatting error: {e}\n\nRaw output:\n{result.output}"
-        
+
         # Return enhanced result
         return EnhancedCommandResult(
             exit_code=result.exit_code,
@@ -269,34 +269,34 @@ class PantsCommands:
         """
         # Build base command
         base_command = self.command_builder.build_command("test", target)
-        
+
         # Add flags for structured output generation
         flags = []
-        
+
         # Configure JUnit XML report generation
         flags.append(f"--test-report={self.report_output_dir}")
-        
+
         # Configure coverage
         flags.append("--use-coverage")
-        
+
         # Configure sandbox preservation
         flags.append(f"--keep-sandboxes={self.keep_sandboxes}")
-        
+
         # Build complete command with flags
         if flags:
             command = f"{base_command} {' '.join(flags)}"
         else:
             command = base_command
-        
+
         # Execute command and measure time
         start_time = time.time()
         result = self.container_manager.exec(command)
         execution_time = time.time() - start_time
-        
+
         # If no parser/formatter configured, return basic result
         if not self.parser_router or not self.formatter:
             return result
-        
+
         # Parse output
         try:
             parsed_output = self.parser_router.parse_command_output(
@@ -308,14 +308,14 @@ class PantsCommands:
             logger.error(f"Failed to parse command output: {e}")
             # Return basic result on parsing failure
             parsed_output = ParsedOutput(parsing_errors=[str(e)])
-        
+
         # Format summary
         try:
             formatted_summary = self.formatter.format_parsed_output(parsed_output)
         except Exception as e:
             logger.error(f"Failed to format parsed output: {e}")
             formatted_summary = f"Formatting error: {e}\n\nRaw output:\n{result.output}"
-        
+
         # Return enhanced result
         return EnhancedCommandResult(
             exit_code=result.exit_code,
@@ -350,19 +350,19 @@ class PantsCommands:
         """
         # Build base command
         base_command = self.command_builder.build_command("package", target)
-        
+
         # Add sandbox preservation flag
         command = f"{base_command} --keep-sandboxes={self.keep_sandboxes}"
-        
+
         # Execute command and measure time
         start_time = time.time()
         result = self.container_manager.exec(command)
         execution_time = time.time() - start_time
-        
+
         # If no parser/formatter configured, return basic result
         if not self.parser_router or not self.formatter:
             return result
-        
+
         # Parse output (mainly for sandbox extraction)
         try:
             parsed_output = self.parser_router.parse_command_output(
@@ -373,14 +373,14 @@ class PantsCommands:
         except Exception as e:
             logger.error(f"Failed to parse command output: {e}")
             parsed_output = ParsedOutput(parsing_errors=[str(e)])
-        
+
         # Format summary
         try:
             formatted_summary = self.formatter.format_parsed_output(parsed_output)
         except Exception as e:
             logger.error(f"Failed to format parsed output: {e}")
             formatted_summary = f"Formatting error: {e}\n\nRaw output:\n{result.output}"
-        
+
         # Return enhanced result
         return EnhancedCommandResult(
             exit_code=result.exit_code,
@@ -414,19 +414,19 @@ class PantsCommands:
         """
         # Build base command
         base_command = self.command_builder.build_command("tailor", target)
-        
+
         # Add sandbox preservation flag
         command = f"{base_command} --keep-sandboxes={self.keep_sandboxes}"
-        
+
         # Execute command and measure time
         start_time = time.time()
         result = self.container_manager.exec(command)
         execution_time = time.time() - start_time
-        
+
         # If no parser/formatter configured, return basic result
         if not self.parser_router or not self.formatter:
             return result
-        
+
         # Parse output (mainly for sandbox extraction)
         try:
             parsed_output = self.parser_router.parse_command_output(
@@ -437,14 +437,14 @@ class PantsCommands:
         except Exception as e:
             logger.error(f"Failed to parse command output: {e}")
             parsed_output = ParsedOutput(parsing_errors=[str(e)])
-        
+
         # Format summary
         try:
             formatted_summary = self.formatter.format_parsed_output(parsed_output)
         except Exception as e:
             logger.error(f"Failed to format parsed output: {e}")
             formatted_summary = f"Formatting error: {e}\n\nRaw output:\n{result.output}"
-        
+
         # Return enhanced result
         return EnhancedCommandResult(
             exit_code=result.exit_code,

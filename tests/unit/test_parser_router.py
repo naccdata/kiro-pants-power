@@ -9,8 +9,6 @@ import pytest
 from src.models import (
     CommandResult,
     CoverageData,
-    FileCoverage,
-    ParsedOutput,
     PytestResults,
     SandboxInfo,
     TestResults,

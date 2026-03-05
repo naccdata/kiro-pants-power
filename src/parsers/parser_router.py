@@ -3,7 +3,7 @@
 import logging
 from pathlib import Path
 
-from src.models import CommandResult, ParsedOutput
+from src.models import CommandResult, CoverageData, ParsedOutput
 from src.parsers.coverage_parser import CoverageReportParser
 from src.parsers.junit_parser import JUnitXMLParser
 from src.parsers.mypy_parser import MyPyOutputParser
@@ -164,7 +164,7 @@ class ParserRouter:
 
         return parsers
 
-    def _find_and_parse_coverage(self, report_dir: str) -> None:
+    def _find_and_parse_coverage(self, report_dir: str) -> CoverageData | None:
         """Find and parse coverage report in the report directory.
 
         Looks for coverage reports in common formats (JSON, XML) and

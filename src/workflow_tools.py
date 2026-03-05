@@ -6,7 +6,7 @@ Pants command sequences with proper error handling and progress indication.
 
 from collections.abc import Callable
 
-from src.models import WorkflowResult
+from src.models import CommandResult, EnhancedCommandResult, WorkflowResult
 from src.workflow_orchestrator import WorkflowOrchestrator
 
 
@@ -31,7 +31,7 @@ class WorkflowTools:
     def full_quality_check(
         self,
         target: str | None = None,
-        progress_callback: Callable[[str], None] | None = None
+        progress_callback: Callable[[str, CommandResult | EnhancedCommandResult], None] | None = None
     ) -> WorkflowResult:
         """Run complete quality check workflow (fix → lint → check → test).
 
@@ -59,7 +59,7 @@ class WorkflowTools:
         self,
         workflow: str,
         target: str | None = None,
-        progress_callback: Callable[[str], None] | None = None
+        progress_callback: Callable[[str, CommandResult | EnhancedCommandResult], None] | None = None
     ) -> WorkflowResult:
         """Execute custom workflow sequence.
 

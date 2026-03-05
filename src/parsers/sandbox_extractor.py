@@ -2,7 +2,6 @@
 
 import logging
 import re
-from typing import Optional
 
 from src.models import SandboxInfo
 
@@ -62,7 +61,7 @@ class SandboxPathExtractor:
 
         return sandboxes
 
-    def extract_sandbox_line(self, line: str) -> Optional[SandboxInfo]:
+    def extract_sandbox_line(self, line: str) -> SandboxInfo | None:
         """Parse a single sandbox preservation log line.
 
         Extracts sandbox path and process description from a single log line

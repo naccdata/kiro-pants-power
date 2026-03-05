@@ -6,7 +6,6 @@ for all parsers and formatters in the enhanced Pants output capture system.
 
 from hypothesis import strategies as st
 
-
 # ============================================================================
 # JUnit XML Generators
 # ============================================================================

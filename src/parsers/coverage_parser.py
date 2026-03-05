@@ -47,7 +47,7 @@ class CoverageReportParser:
         else:
             # Try to detect by content
             try:
-                with open(report_path, 'r') as f:
+                with open(report_path) as f:
                     first_char = f.read(1)
                     if first_char == '{':
                         return self.parse_json_coverage(report_path)
@@ -82,7 +82,7 @@ class CoverageReportParser:
             raise FileNotFoundError(f"JSON coverage file not found: {json_path}")
 
         try:
-            with open(json_path, 'r') as f:
+            with open(json_path) as f:
                 data = json.load(f)
         except json.JSONDecodeError as e:
             logger.error(f"Malformed JSON in {json_path}: {e}")
@@ -212,7 +212,7 @@ class CoverageReportParser:
         Returns:
             List of (start_line, end_line) tuples for uncovered ranges
         """
-        uncovered_ranges = []
+        uncovered_ranges: list[tuple[int, int]] = []
 
         # Get missing lines (uncovered)
         missing_lines = file_data.get("missing_lines", [])
@@ -251,7 +251,7 @@ class CoverageReportParser:
         Returns:
             List of (start_line, end_line) tuples for uncovered ranges
         """
-        uncovered_ranges = []
+        uncovered_ranges: list[tuple[int, int]] = []
 
         # Get all lines with hits == 0
         lines = class_elem.findall(".//line")

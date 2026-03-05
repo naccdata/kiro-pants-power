@@ -143,8 +143,8 @@ def format_success(result: CommandResult | EnhancedCommandResult) -> str:
 __all__ = [
     "ConfigurationPrettyPrinter",
     "EnhancedErrorFormatter",
-    "format_container_error",
     "format_command_execution_error",
-    "format_validation_error",
+    "format_container_error",
     "format_success",
+    "format_validation_error",
 ]

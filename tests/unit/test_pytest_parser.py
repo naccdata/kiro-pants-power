@@ -569,7 +569,7 @@ FAILED tests/test_example.py::test_complex - ValueError: Invalid data
         frames = []
         for i in range(15):
             frames.append(f"    src/module{i}.py:{i*10}: in function{i}")
-            frames.append(f"        call_next()")
+            frames.append("        call_next()")
             frames.append("")  # Empty line between frames
 
         stack_trace = '\n'.join(frames)

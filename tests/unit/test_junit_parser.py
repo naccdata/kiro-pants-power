@@ -5,7 +5,6 @@ from pathlib import Path
 
 import pytest
 
-from src.models import TestResults
 from src.parsers.junit_parser import JUnitXMLParser
 
 
