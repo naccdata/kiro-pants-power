@@ -1,0 +1,5 @@
+src/auth.py:23: error: Argument 1 to "login" has incompatible type "int"; expected "str"  [arg-type]
+src/auth.py:23: note: See https://mypy.readthedocs.io/en/stable/common_issues.html#incompatible-types
+src/database.py:12: error: Incompatible types in assignment (expression has type "str", variable has type "int")  [assignment]
+src/database.py:12: note: Consider using Union[str, int] if both types are valid
+Found 2 errors in 2 files (checked 5 source files)

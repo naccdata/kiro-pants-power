@@ -1,0 +1,22 @@
+[GLOBAL]
+pants_version = "2.18.0"
+backend_packages = [
+  "pants.backend.python",
+  "pants.backend.python.lint.black",
+  "pants.backend.python.lint.flake8",
+  "pants.backend.python.typecheck.mypy",
+]
+
+[source]
+root_patterns = ["/"]
+
+[python]
+interpreter_constraints = [">=3.9,<3.13"]
+
+[test]
+output = "failed"
+use_coverage = true
+
+[coverage-py]
+report = ["console", "html", "json", "xml"]
+global_report = true

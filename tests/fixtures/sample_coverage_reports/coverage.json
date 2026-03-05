@@ -1,0 +1,53 @@
+{
+  "meta": {
+    "version": "7.4.0",
+    "timestamp": "2024-01-15T10:30:00",
+    "branch_coverage": true,
+    "show_contexts": false
+  },
+  "files": {
+    "src/calculator.py": {
+      "executed_lines": [1, 2, 3, 5, 6, 7, 9, 10, 15, 16, 17],
+      "summary": {
+        "covered_lines": 11,
+        "num_statements": 15,
+        "percent_covered": 73.33,
+        "missing_lines": 4,
+        "excluded_lines": 0
+      },
+      "missing_lines": [11, 12, 13, 14],
+      "excluded_lines": []
+    },
+    "src/auth.py": {
+      "executed_lines": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+      "summary": {
+        "covered_lines": 20,
+        "num_statements": 20,
+        "percent_covered": 100.0,
+        "missing_lines": 0,
+        "excluded_lines": 0
+      },
+      "missing_lines": [],
+      "excluded_lines": []
+    },
+    "src/database.py": {
+      "executed_lines": [1, 2, 3, 5, 6],
+      "summary": {
+        "covered_lines": 5,
+        "num_statements": 25,
+        "percent_covered": 20.0,
+        "missing_lines": 20,
+        "excluded_lines": 0
+      },
+      "missing_lines": [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26],
+      "excluded_lines": []
+    }
+  },
+  "totals": {
+    "covered_lines": 36,
+    "num_statements": 60,
+    "percent_covered": 60.0,
+    "missing_lines": 24,
+    "excluded_lines": 0
+  }
+}

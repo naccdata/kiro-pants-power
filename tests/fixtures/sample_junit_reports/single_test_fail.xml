@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<testsuites>
+  <testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.234" timestamp="2024-01-15T10:30:00" hostname="test-host">
+    <testcase classname="tests.test_example" name="test_simple_fail" time="0.089">
+      <failure message="AssertionError: assert 1 == 2">def test_simple_fail():
+&gt;       assert 1 == 2
+E       assert 1 == 2
+
+tests/test_example.py:5: AssertionError</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

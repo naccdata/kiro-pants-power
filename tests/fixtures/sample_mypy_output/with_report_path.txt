@@ -1,0 +1,4 @@
+src/calculator.py:15: error: Incompatible return value type (got "str", expected "int")  [return-value]
+Found 1 error in 1 file (checked 1 source file)
+Generated HTML report: /tmp/mypy-report/index.html
+Generated XML report: /tmp/mypy-report/mypy.xml

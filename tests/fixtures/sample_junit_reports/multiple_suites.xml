@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<testsuites>
+  <testsuite name="tests.test_auth" errors="0" failures="1" skipped="0" tests="3" time="0.567" timestamp="2024-01-15T10:30:00" hostname="test-host">
+    <testcase classname="tests.test_auth" name="test_login_success" time="0.123" />
+    <testcase classname="tests.test_auth" name="test_login_failure" time="0.089" />
+    <testcase classname="tests.test_auth" name="test_logout" time="0.045">
+      <failure message="AssertionError: Session not cleared">def test_logout():
+&gt;       assert session.is_active() == False
+E       AssertionError: Session not cleared
+
+tests/test_auth.py:25: AssertionError</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="tests.test_database" errors="0" failures="0" skipped="0" tests="2" time="0.234" timestamp="2024-01-15T10:30:01" hostname="test-host">
+    <testcase classname="tests.test_database" name="test_connection" time="0.156" />
+    <testcase classname="tests.test_database" name="test_query" time="0.078" />
+  </testsuite>
+</testsuites>

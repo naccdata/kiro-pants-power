@@ -1,0 +1,4 @@
+src/calculator.py:15:9: error: Incompatible return value type (got "str", expected "int")  [return-value]
+src/auth.py:23:15: error: Argument 1 to "login" has incompatible type "int"; expected "str"  [arg-type]
+src/database.py:12:5: error: Incompatible types in assignment (expression has type "str", variable has type "int")  [assignment]
+Found 3 errors in 3 files (checked 8 source files)
