@@ -34,7 +34,7 @@ class PantsCommands:
         parser_router: ParserRouter | None = None,
         formatter: EnhancedErrorFormatter | None = None,
         report_output_dir: str = "dist/test-reports",
-        keep_sandboxes: str = "on_failure"
+        keep_sandboxes: str = "on_failure",
     ):
         """Initialize PantsCommands.
 
@@ -90,9 +90,7 @@ class PantsCommands:
         # Parse output (mainly for sandbox extraction)
         try:
             parsed_output = self.parser_router.parse_command_output(
-                command=command,
-                result=result,
-                report_dir=self.report_output_dir
+                command=command, result=result, report_dir=self.report_output_dir
             )
         except Exception as e:
             logger.error(f"Failed to parse command output: {e}")
@@ -114,7 +112,7 @@ class PantsCommands:
             success=result.success,
             parsed_output=parsed_output,
             formatted_summary=formatted_summary,
-            execution_time=execution_time
+            execution_time=execution_time,
         )
 
     def pants_lint(self, target: str | None = None) -> CommandResult | EnhancedCommandResult:
@@ -154,9 +152,7 @@ class PantsCommands:
         # Parse output (mainly for sandbox extraction)
         try:
             parsed_output = self.parser_router.parse_command_output(
-                command=command,
-                result=result,
-                report_dir=self.report_output_dir
+                command=command, result=result, report_dir=self.report_output_dir
             )
         except Exception as e:
             logger.error(f"Failed to parse command output: {e}")
@@ -178,7 +174,7 @@ class PantsCommands:
             success=result.success,
             parsed_output=parsed_output,
             formatted_summary=formatted_summary,
-            execution_time=execution_time
+            execution_time=execution_time,
         )
 
     def pants_check(self, target: str | None = None) -> CommandResult | EnhancedCommandResult:
@@ -218,9 +214,7 @@ class PantsCommands:
         # Parse output
         try:
             parsed_output = self.parser_router.parse_command_output(
-                command=command,
-                result=result,
-                report_dir=self.report_output_dir
+                command=command, result=result, report_dir=self.report_output_dir
             )
         except Exception as e:
             logger.error(f"Failed to parse command output: {e}")
@@ -243,7 +237,7 @@ class PantsCommands:
             success=result.success,
             parsed_output=parsed_output,
             formatted_summary=formatted_summary,
-            execution_time=execution_time
+            execution_time=execution_time,
         )
 
     def pants_test(self, target: str | None = None) -> CommandResult | EnhancedCommandResult:
@@ -274,7 +268,8 @@ class PantsCommands:
         flags = []
 
         # Configure JUnit XML report generation
-        flags.append(f"--test-report={self.report_output_dir}")
+        flags.append("--test-report")
+        flags.append(f"--test-report-dir={self.report_output_dir}")
 
         # Configure coverage
         flags.append("--use-coverage")
@@ -283,10 +278,7 @@ class PantsCommands:
         flags.append(f"--keep-sandboxes={self.keep_sandboxes}")
 
         # Build complete command with flags
-        if flags:
-            command = f"{base_command} {' '.join(flags)}"
-        else:
-            command = base_command
+        command = f"{base_command} {' '.join(flags)}" if flags else base_command
 
         # Execute command and measure time
         start_time = time.time()
@@ -300,9 +292,7 @@ class PantsCommands:
         # Parse output
         try:
             parsed_output = self.parser_router.parse_command_output(
-                command=command,
-                result=result,
-                report_dir=self.report_output_dir
+                command=command, result=result, report_dir=self.report_output_dir
             )
         except Exception as e:
             logger.error(f"Failed to parse command output: {e}")
@@ -325,7 +315,7 @@ class PantsCommands:
             success=result.success,
             parsed_output=parsed_output,
             formatted_summary=formatted_summary,
-            execution_time=execution_time
+            execution_time=execution_time,
         )
 
     def pants_package(self, target: str | None = None) -> CommandResult | EnhancedCommandResult:
@@ -366,9 +356,7 @@ class PantsCommands:
         # Parse output (mainly for sandbox extraction)
         try:
             parsed_output = self.parser_router.parse_command_output(
-                command=command,
-                result=result,
-                report_dir=self.report_output_dir
+                command=command, result=result, report_dir=self.report_output_dir
             )
         except Exception as e:
             logger.error(f"Failed to parse command output: {e}")
@@ -390,7 +378,7 @@ class PantsCommands:
             success=result.success,
             parsed_output=parsed_output,
             formatted_summary=formatted_summary,
-            execution_time=execution_time
+            execution_time=execution_time,
         )
 
     def pants_tailor(self, target: str | None = None) -> CommandResult | EnhancedCommandResult:
@@ -430,9 +418,7 @@ class PantsCommands:
         # Parse output (mainly for sandbox extraction)
         try:
             parsed_output = self.parser_router.parse_command_output(
-                command=command,
-                result=result,
-                report_dir=self.report_output_dir
+                command=command, result=result, report_dir=self.report_output_dir
             )
         except Exception as e:
             logger.error(f"Failed to parse command output: {e}")
@@ -454,9 +440,8 @@ class PantsCommands:
             success=result.success,
             parsed_output=parsed_output,
             formatted_summary=formatted_summary,
-            execution_time=execution_time
+            execution_time=execution_time,
         )
-
 
     def pants_clear_cache(self) -> CommandResult:
         """Clear Pants cache to resolve filesystem issues.
@@ -480,4 +465,3 @@ class PantsCommands:
         # Use -f flag to suppress errors if directory doesn't exist
         command = "rm -rf .pants.d/pids"
         return self.container_manager.exec(command)
-
