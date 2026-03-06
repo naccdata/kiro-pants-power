@@ -238,7 +238,7 @@ This implementation refactors the kiro-pants-power output capture system to prov
 - [x] 13. Enhance PantsCommands with parsing integration
   - Modify src/pants_commands.py to integrate parsing capabilities
   - Add parser_router and formatter as optional dependencies to __init__
-  - Update pants_test() to configure --test-report and --use-coverage flags
+  - Update pants_test() to configure --test-report and --test-use-coverage flags
   - Update pants_test() to parse JUnit XML and coverage reports after execution
   - Update pants_check() to parse MyPy errors after execution
   - Update all command methods to extract sandbox paths

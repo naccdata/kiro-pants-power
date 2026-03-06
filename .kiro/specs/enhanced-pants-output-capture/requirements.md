@@ -81,7 +81,7 @@ This document specifies requirements for enhancing the kiro-pants-power output c
 #### Acceptance Criteria
 
 1. THE Output_Capture_System SHALL configure test commands with `--test-report` flag to enable JUnit XML generation
-2. THE Output_Capture_System SHALL configure test commands with `--use-coverage` flag when coverage is requested
+2. THE Output_Capture_System SHALL configure test commands with `--test-use-coverage` flag when coverage is requested
 3. THE Output_Capture_System SHALL configure coverage output format to include JSON or XML via environment or config
 4. THE Output_Capture_System SHALL configure test output mode to `failed` to reduce noise while preserving error details
 5. WHERE MyPy report generation is configured, THE Output_Capture_System SHALL preserve MyPy report directory paths

@@ -831,7 +831,7 @@ For any Configuration object, validation should check all sections and options a
 
 ### Property 32: Coverage Flag Configuration
 
-For any test command where coverage is requested (enable_coverage=True), the built command string should include the `--use-coverage` flag.
+For any test command where coverage is requested (enable_coverage=True), the built command string should include the `--test-use-coverage` flag.
 
 **Validates: Requirements 5.2**
 
