@@ -260,7 +260,7 @@ class TestPantsCommands:
         mock_command_builder.build_command.assert_called_once_with("test", None)
         expected_cmd = (
             "pants test :: --test-report --test-report-dir=dist/test-reports "
-            "--use-coverage --keep-sandboxes=on_failure"
+            "--test-use-coverage --keep-sandboxes=on_failure"
         )
         mock_container_manager.exec.assert_called_once_with(expected_cmd)
         assert result.success
@@ -287,7 +287,7 @@ class TestPantsCommands:
         mock_command_builder.build_command.assert_called_once_with("test", target)
         expected_cmd = (
             f"pants test {target} --test-report --test-report-dir=dist/test-reports "
-            "--use-coverage --keep-sandboxes=on_failure"
+            "--test-use-coverage --keep-sandboxes=on_failure"
         )
         mock_container_manager.exec.assert_called_once_with(expected_cmd)
         assert result.success

@@ -272,7 +272,7 @@ class PantsCommands:
         flags.append(f"--test-report-dir={self.report_output_dir}")
 
         # Configure coverage
-        flags.append("--use-coverage")
+        flags.append("--test-use-coverage")
 
         # Configure sandbox preservation
         flags.append(f"--keep-sandboxes={self.keep_sandboxes}")
