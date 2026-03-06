@@ -63,7 +63,7 @@ report = true  # Enables JUnit XML generation
 
 **Activation**:
 ```bash
-pants test --use-coverage <target>
+pants test --test-use-coverage <target>
 ```
 
 Or permanently:

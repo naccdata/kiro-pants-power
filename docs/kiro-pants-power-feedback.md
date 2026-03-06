@@ -3,6 +3,17 @@
 ## Session Date
 March 4, 2026
 
+## Issue Resolution Update (March 6, 2026)
+
+### Issue: Invalid test command parameters
+**Status**: ✓ RESOLVED
+
+The reported issue with `--test-report=dist/test-reports` causing parsing errors has been fixed. The implementation now correctly uses:
+- `--test-report` as a boolean flag
+- `--test-report-dir=dist/test-reports` for the directory path
+
+This fix applies to both `pants_test` and `full_quality_check` (which delegates to `pants_test`). All unit tests pass and confirm the correct behavior.
+
 ## Overall Experience
 The kiro-pants-power worked excellently throughout this session. All commands executed successfully and the workflow was smooth.
 
