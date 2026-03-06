@@ -52,7 +52,9 @@ class TestPantsCommands:
 
         # Verify
         mock_command_builder.build_command.assert_called_once_with("fix", None)
-        mock_container_manager.exec.assert_called_once_with("pants fix :: --keep-sandboxes=on_failure")
+        mock_container_manager.exec.assert_called_once_with(
+            "pants fix :: --keep-sandboxes=on_failure"
+        )
         assert result.success
         assert result.exit_code == 0
 
@@ -76,7 +78,9 @@ class TestPantsCommands:
 
         # Verify
         mock_command_builder.build_command.assert_called_once_with("fix", target)
-        mock_container_manager.exec.assert_called_once_with(f"pants fix {target} --keep-sandboxes=on_failure")
+        mock_container_manager.exec.assert_called_once_with(
+            f"pants fix {target} --keep-sandboxes=on_failure"
+        )
         assert result.success
 
     def test_pants_fix_container_failure(
@@ -112,7 +116,9 @@ class TestPantsCommands:
 
         # Verify
         mock_command_builder.build_command.assert_called_once_with("lint", None)
-        mock_container_manager.exec.assert_called_once_with("pants lint :: --keep-sandboxes=on_failure")
+        mock_container_manager.exec.assert_called_once_with(
+            "pants lint :: --keep-sandboxes=on_failure"
+        )
         assert result.success
 
     def test_pants_lint_with_custom_target(
@@ -135,7 +141,9 @@ class TestPantsCommands:
 
         # Verify
         mock_command_builder.build_command.assert_called_once_with("lint", target)
-        mock_container_manager.exec.assert_called_once_with(f"pants lint {target} --keep-sandboxes=on_failure")
+        mock_container_manager.exec.assert_called_once_with(
+            f"pants lint {target} --keep-sandboxes=on_failure"
+        )
         assert result.success
 
     def test_pants_lint_failure(
@@ -181,7 +189,9 @@ class TestPantsCommands:
 
         # Verify
         mock_command_builder.build_command.assert_called_once_with("check", None)
-        mock_container_manager.exec.assert_called_once_with("pants check :: --keep-sandboxes=on_failure")
+        mock_container_manager.exec.assert_called_once_with(
+            "pants check :: --keep-sandboxes=on_failure"
+        )
         assert result.success
 
     def test_pants_check_with_custom_target(
@@ -204,7 +214,9 @@ class TestPantsCommands:
 
         # Verify
         mock_command_builder.build_command.assert_called_once_with("check", target)
-        mock_container_manager.exec.assert_called_once_with(f"pants check {target} --keep-sandboxes=on_failure")
+        mock_container_manager.exec.assert_called_once_with(
+            f"pants check {target} --keep-sandboxes=on_failure"
+        )
         assert result.success
 
     def test_pants_check_type_errors(
@@ -246,9 +258,11 @@ class TestPantsCommands:
 
         # Verify
         mock_command_builder.build_command.assert_called_once_with("test", None)
-        mock_container_manager.exec.assert_called_once_with(
-            "pants test :: --test-report=dist/test-reports --use-coverage --keep-sandboxes=on_failure"
+        expected_cmd = (
+            "pants test :: --test-report --test-report-dir=dist/test-reports "
+            "--use-coverage --keep-sandboxes=on_failure"
         )
+        mock_container_manager.exec.assert_called_once_with(expected_cmd)
         assert result.success
 
     def test_pants_test_with_custom_target(
@@ -271,9 +285,11 @@ class TestPantsCommands:
 
         # Verify
         mock_command_builder.build_command.assert_called_once_with("test", target)
-        mock_container_manager.exec.assert_called_once_with(
-            f"pants test {target} --test-report=dist/test-reports --use-coverage --keep-sandboxes=on_failure"
+        expected_cmd = (
+            f"pants test {target} --test-report --test-report-dir=dist/test-reports "
+            "--use-coverage --keep-sandboxes=on_failure"
         )
+        mock_container_manager.exec.assert_called_once_with(expected_cmd)
         assert result.success
 
     def test_pants_test_failure(
@@ -319,7 +335,9 @@ class TestPantsCommands:
 
         # Verify
         mock_command_builder.build_command.assert_called_once_with("package", None)
-        mock_container_manager.exec.assert_called_once_with("pants package :: --keep-sandboxes=on_failure")
+        mock_container_manager.exec.assert_called_once_with(
+            "pants package :: --keep-sandboxes=on_failure"
+        )
         assert result.success
 
     def test_pants_package_with_custom_target(
@@ -342,7 +360,9 @@ class TestPantsCommands:
 
         # Verify
         mock_command_builder.build_command.assert_called_once_with("package", target)
-        mock_container_manager.exec.assert_called_once_with(f"pants package {target} --keep-sandboxes=on_failure")
+        mock_container_manager.exec.assert_called_once_with(
+            f"pants package {target} --keep-sandboxes=on_failure"
+        )
         assert result.success
 
     def test_pants_package_failure(
@@ -415,7 +435,6 @@ class TestPantsCommands:
         assert calls[3][0][0] == "test"
         assert calls[4][0][0] == "package"
 
-
     # Tests for pants_clear_cache
 
     def test_pants_clear_cache_successful(
@@ -458,4 +477,3 @@ class TestPantsCommands:
         # Verify - should succeed without error
         assert result.success
         assert result.exit_code == 0
-
