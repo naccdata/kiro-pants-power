@@ -25,7 +25,9 @@ class TestPowerConfig:
 
         assert config.name == "pants-devcontainer-power"
         assert config.version == "0.1.0"
-        assert config.description == "MCP tools for Pants build system with devcontainer integration"
+        assert config.description == (
+            "MCP tools for Pants build system with devcontainer integration"
+        )
         assert config.python_version == "3.12+"
         assert config.repository_root == Path.cwd()
 
@@ -144,8 +146,10 @@ class TestPantsDevContainerServer:
 
             mock_server_class.assert_called_once_with(mock_config.name)
 
-    def test_format_command_result_success(self, server: PantsDevContainerServer) -> None:
-        """Test _format_command_result formats successful results correctly."""
+    def test_format_command_result_success(
+        self, server: PantsDevContainerServer
+    ) -> None:
+        """Test _format_command_result formats successful results."""
         result = CommandResult(
             exit_code=0,
             stdout="Success output",
@@ -154,15 +158,17 @@ class TestPantsDevContainerServer:
             success=True,
         )
 
-        formatted = server._format_command_result(result)
+        formatted = server._format_command_result(result)  # noqa: SLF001
 
         assert len(formatted) == 1
         assert formatted[0].type == "text"
         assert "Success output" in formatted[0].text
         assert "pants test ::" in formatted[0].text
 
-    def test_format_command_result_failure(self, server: PantsDevContainerServer) -> None:
-        """Test _format_command_result formats failed results correctly."""
+    def test_format_command_result_failure(
+        self, server: PantsDevContainerServer
+    ) -> None:
+        """Test _format_command_result formats failed results."""
         result = CommandResult(
             exit_code=1,
             stdout="",
@@ -171,14 +177,19 @@ class TestPantsDevContainerServer:
             success=False,
         )
 
-        formatted = server._format_command_result(result)
+        formatted = server._format_command_result(result)  # noqa: SLF001
 
         assert len(formatted) == 1
         assert formatted[0].type == "text"
-        assert "Command execution failed" in formatted[0].text or "Exit code: 1" in formatted[0].text
+        assert (
+            "Command execution failed" in formatted[0].text
+            or "Exit code: 1" in formatted[0].text
+        )
 
-    def test_format_workflow_result_success(self, server: PantsDevContainerServer) -> None:
-        """Test _format_workflow_result formats successful workflow correctly."""
+    def test_format_workflow_result_success(
+        self, server: PantsDevContainerServer
+    ) -> None:
+        """Test _format_workflow_result formats successful workflow."""
         result = WorkflowResult(
             steps_completed=["fix", "lint", "check"],
             failed_step=None,
@@ -190,15 +201,17 @@ class TestPantsDevContainerServer:
             overall_success=True,
         )
 
-        formatted = server._format_workflow_result(result)
+        formatted = server._format_workflow_result(result)  # noqa: SLF001
 
         assert len(formatted) == 1
         assert formatted[0].type == "text"
         assert "Workflow completed successfully" in formatted[0].text
         assert "fix, lint, check" in formatted[0].text
 
-    def test_format_workflow_result_failure(self, server: PantsDevContainerServer) -> None:
-        """Test _format_workflow_result formats failed workflow correctly."""
+    def test_format_workflow_result_failure(
+        self, server: PantsDevContainerServer
+    ) -> None:
+        """Test _format_workflow_result formats failed workflow."""
         result = WorkflowResult(
             steps_completed=["fix"],
             failed_step="lint",
@@ -209,7 +222,7 @@ class TestPantsDevContainerServer:
             overall_success=False,
         )
 
-        formatted = server._format_workflow_result(result)
+        formatted = server._format_workflow_result(result)  # noqa: SLF001
 
         assert len(formatted) == 1
         assert formatted[0].type == "text"
@@ -219,18 +232,20 @@ class TestPantsDevContainerServer:
     def test_format_workflow_result_includes_step_details(
         self, server: PantsDevContainerServer
     ) -> None:
-        """Test _format_workflow_result includes detailed step information."""
+        """Test _format_workflow_result includes detailed step info."""
         result = WorkflowResult(
             steps_completed=["fix", "lint"],
             failed_step=None,
             results=[
                 CommandResult(0, "Fixed 3 files", "", "pants fix ::", True),
-                CommandResult(0, "All checks passed", "", "pants lint ::", True),
+                CommandResult(
+                    0, "All checks passed", "", "pants lint ::", True
+                ),
             ],
             overall_success=True,
         )
 
-        formatted = server._format_workflow_result(result)
+        formatted = server._format_workflow_result(result)  # noqa: SLF001
 
         text = formatted[0].text
         assert "--- Step Details ---" in text
@@ -463,9 +478,13 @@ class TestServerErrorHandling:
         with pytest.raises(CommandExecutionError, match="Command execution failed"):
             server.pants_commands.pants_test()
 
-    def test_power_error_handling(self, server: PantsDevContainerServer) -> None:
+    def test_power_error_handling(
+        self, server: PantsDevContainerServer
+    ) -> None:
         """Test that PowerError is properly handled."""
-        server.pants_commands.pants_fix = Mock(side_effect=PowerError("Power initialization failed"))
+        server.pants_commands.pants_fix = Mock(
+            side_effect=PowerError("Power initialization failed")
+        )
 
         with pytest.raises(PowerError, match="Power initialization failed"):
             server.pants_commands.pants_fix()
@@ -523,6 +542,6 @@ class TestServerComponentIntegration:
             server = PantsDevContainerServer()
 
             # These methods are no-ops but should not raise errors
-            server._register_container_tools()
-            server._register_workflow_tools()
-            server._register_utility_tools()
+            server._register_container_tools()  # noqa: SLF001
+            server._register_workflow_tools()  # noqa: SLF001
+            server._register_utility_tools()  # noqa: SLF001

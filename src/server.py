@@ -21,6 +21,15 @@ from src.formatters import (
     format_success,
     format_validation_error,
 )
+from src.intent.tool_executor import ToolExecutor
+from src.intent.tool_schemas import (
+    TOOL_DESCRIPTIONS,
+    get_pants_check_schema,
+    get_pants_fix_schema,
+    get_pants_lint_schema,
+    get_pants_package_schema,
+    get_pants_test_schema,
+)
 from src.models import (
     CommandExecutionError,
     CommandResult,
@@ -68,10 +77,14 @@ class PowerConfig:
             description: Power description
             python_version: Required Python version
             repository_root: Path to repository root (uses current directory if None)
-            report_output_dir: Directory where Pants generates report files (default: "dist/test-reports")
-            max_errors_per_category: Maximum number of errors to show per category (default: 10)
-            enable_verbose_parsing: Whether to include detailed parsing error messages (default: False)
-            keep_sandboxes: Pants sandbox preservation mode - "always", "on_failure", or "never" (default: "on_failure")
+            report_output_dir: Directory where Pants generates report files
+                (default: "dist/test-reports")
+            max_errors_per_category: Maximum number of errors to show per
+                category (default: 10)
+            enable_verbose_parsing: Whether to include detailed parsing error
+                messages (default: False)
+            keep_sandboxes: Pants sandbox preservation mode - "always",
+                "on_failure", or "never" (default: "on_failure")
         """
         self.name = name
         self.version = version
@@ -135,6 +148,7 @@ class PantsDevContainerServer:
         self.pants_commands = PantsCommands()
         self.container_lifecycle = ContainerLifecycle()
         self.workflow_tools = WorkflowTools()
+        self.tool_executor = ToolExecutor(self.pants_commands)
 
         # Register tools
         self._register_tools()
@@ -153,7 +167,7 @@ class PantsDevContainerServer:
         # Register utility tools
         self._register_utility_tools()
 
-    def _register_pants_tools(self) -> None:
+    def _register_pants_tools(self) -> None:  # noqa: C901
         """Register Pants command tools."""
 
         @self.server.list_tools()
@@ -162,68 +176,28 @@ class PantsDevContainerServer:
             return [
                 Tool(
                     name="pants_fix",
-                    description="Format code and auto-fix linting issues",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "target": {
-                                "type": "string",
-                                "description": 'Pants target specification (default: "::")',
-                            }
-                        },
-                    },
+                    description=TOOL_DESCRIPTIONS["pants_fix"],
+                    inputSchema=get_pants_fix_schema(),
                 ),
                 Tool(
                     name="pants_lint",
-                    description="Run linters on code",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "target": {
-                                "type": "string",
-                                "description": 'Pants target specification (default: "::")',
-                            }
-                        },
-                    },
+                    description=TOOL_DESCRIPTIONS["pants_lint"],
+                    inputSchema=get_pants_lint_schema(),
                 ),
                 Tool(
                     name="pants_check",
-                    description="Run type checking with mypy",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "target": {
-                                "type": "string",
-                                "description": 'Pants target specification (default: "::")',
-                            }
-                        },
-                    },
+                    description=TOOL_DESCRIPTIONS["pants_check"],
+                    inputSchema=get_pants_check_schema(),
                 ),
                 Tool(
                     name="pants_test",
-                    description="Run tests",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "target": {
-                                "type": "string",
-                                "description": 'Pants target specification (default: "::")',
-                            }
-                        },
-                    },
+                    description=TOOL_DESCRIPTIONS["pants_test"],
+                    inputSchema=get_pants_test_schema(),
                 ),
                 Tool(
                     name="pants_package",
-                    description="Build packages",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "target": {
-                                "type": "string",
-                                "description": 'Pants target specification (default: "::")',
-                            }
-                        },
-                    },
+                    description=TOOL_DESCRIPTIONS["pants_package"],
+                    inputSchema=get_pants_package_schema(),
                 ),
                 Tool(
                     name="pants_tailor",
@@ -313,7 +287,9 @@ class PantsDevContainerServer:
             ]
 
         @self.server.call_tool()
-        async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
+        async def call_tool(  # noqa: C901
+            name: str, arguments: dict[str, Any]
+        ) -> list[TextContent]:
             """Handle tool invocation requests.
 
             Args:
@@ -329,23 +305,23 @@ class PantsDevContainerServer:
             try:
                 # Route to appropriate tool function
                 if name == "pants_fix":
-                    result = self.pants_commands.pants_fix(arguments.get("target"))
+                    result = self.tool_executor.execute_pants_fix(arguments)
                     return self._format_command_result(result)
 
                 elif name == "pants_lint":
-                    result = self.pants_commands.pants_lint(arguments.get("target"))
+                    result = self.tool_executor.execute_pants_lint(arguments)
                     return self._format_command_result(result)
 
                 elif name == "pants_check":
-                    result = self.pants_commands.pants_check(arguments.get("target"))
+                    result = self.tool_executor.execute_pants_check(arguments)
                     return self._format_command_result(result)
 
                 elif name == "pants_test":
-                    result = self.pants_commands.pants_test(arguments.get("target"))
+                    result = self.tool_executor.execute_pants_test(arguments)
                     return self._format_command_result(result)
 
                 elif name == "pants_package":
-                    result = self.pants_commands.pants_package(arguments.get("target"))
+                    result = self.tool_executor.execute_pants_package(arguments)
                     return self._format_command_result(result)
 
                 elif name == "pants_tailor":
@@ -367,7 +343,9 @@ class PantsDevContainerServer:
                 elif name == "container_exec":
                     command = arguments.get("command")
                     if not command:
-                        raise ValidationError("Parameter 'command' is required for container_exec")
+                        raise ValidationError(
+                            "Parameter 'command' is required for container_exec"
+                        )
                     result = self.container_lifecycle.container_exec(command)
                     return self._format_command_result(result)
 
@@ -384,7 +362,9 @@ class PantsDevContainerServer:
                 elif name == "pants_workflow":
                     workflow = arguments.get("workflow")
                     if not workflow:
-                        raise ValidationError("Parameter 'workflow' is required for pants_workflow")
+                        raise ValidationError(
+                            "Parameter 'workflow' is required for pants_workflow"
+                        )
                     workflow_result = self.workflow_tools.pants_workflow(
                         workflow, arguments.get("target")
                     )
@@ -508,8 +488,11 @@ async def async_main() -> None:
     except Exception as e:
         # Check if this is a connection closed error (expected during shutdown/uninstall)
         error_msg = str(e)
-        if "Connection closed" in error_msg or "connection closed" in error_msg.lower():
-            # Exit silently - this is expected when the power is uninstalled or connection is terminated
+        if (
+            "Connection closed" in error_msg
+            or "connection closed" in error_msg.lower()
+        ):
+            # Exit silently - expected when power is uninstalled
             sys.exit(0)
         print(f"Unexpected error: {e}", file=sys.stderr)
         sys.exit(1)

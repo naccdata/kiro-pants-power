@@ -31,7 +31,9 @@ class WorkflowTools:
     def full_quality_check(
         self,
         target: str | None = None,
-        progress_callback: Callable[[str, CommandResult | EnhancedCommandResult], None] | None = None
+        progress_callback: (
+            Callable[[str, CommandResult | EnhancedCommandResult], None] | None
+        ) = None
     ) -> WorkflowResult:
         """Run complete quality check workflow (fix → lint → check → test).
 
@@ -59,7 +61,9 @@ class WorkflowTools:
         self,
         workflow: str,
         target: str | None = None,
-        progress_callback: Callable[[str, CommandResult | EnhancedCommandResult], None] | None = None
+        progress_callback: (
+            Callable[[str, CommandResult | EnhancedCommandResult], None] | None
+        ) = None
     ) -> WorkflowResult:
         """Execute custom workflow sequence.
 

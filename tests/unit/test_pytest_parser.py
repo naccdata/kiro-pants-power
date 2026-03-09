@@ -433,7 +433,7 @@ E       assert 3 == 4
 """
 
         # Extract for test_first
-        assertion = parser._extract_assertion_for_test(
+        assertion = parser._extract_assertion_for_test(  # noqa: SLF001
             output, "tests/test_example.py", "test_first"
         )
 
@@ -537,7 +537,7 @@ _ test_complex _
     def test_complex():
 >       result = process_data()
 
-tests/test_example.py:15: 
+tests/test_example.py:15:
     src/processor.py:42: in process_data
         return transform(data)
     src/transformer.py:28: in transform
@@ -579,7 +579,7 @@ _ test_deep_stack _
     def test_deep_stack():
 >       result = start_chain()
 
-tests/test_example.py:5: 
+tests/test_example.py:5:
 {stack_trace}
 E   RuntimeError: Too deep
 
@@ -597,8 +597,13 @@ FAILED tests/test_example.py::test_deep_stack - RuntimeError: Too deep
         if failure.stack_trace_excerpt:
             # Count the number of "src/module" occurrences
             # Should have at most MAX_RELEVANT_FRAMES (5) frames
-            frame_lines = [line for line in failure.stack_trace_excerpt.split('\n') if 'src/module' in line]
-            assert len(frame_lines) <= 5, f"Expected at most 5 frames, got {len(frame_lines)}"
+            frame_lines = [
+                line for line in failure.stack_trace_excerpt.split('\n')
+                if 'src/module' in line
+            ]
+            assert len(frame_lines) <= 5, (
+                f"Expected at most 5 frames, got {len(frame_lines)}"
+            )
 
     def test_stack_trace_handles_standard_library_frames(self) -> None:
         """Test that standard library frames are filtered appropriately."""
@@ -609,7 +614,7 @@ _ test_stdlib _
     def test_stdlib():
 >       result = json.loads(data)
 
-tests/test_example.py:20: 
+tests/test_example.py:20:
     /usr/lib/python3.12/json/__init__.py:346: in loads
         return _default_decoder.decode(s)
     /usr/lib/python3.12/json/decoder.py:337: in decode
@@ -642,7 +647,7 @@ _ test_external _
     def test_external():
 >       result = external_lib.process()
 
-tests/test_example.py:25: 
+tests/test_example.py:25:
     /usr/local/lib/external_lib.py:100: in process
         raise RuntimeError("External error")
 E   RuntimeError: External error
@@ -666,26 +671,52 @@ FAILED tests/test_example.py::test_external - RuntimeError: External error
         parser = PytestOutputParser()
 
         # Application frames
-        assert parser._is_application_frame("    src/module.py:10: in function")
-        assert parser._is_application_frame("    tests/test_module.py:20: in test")
-        assert parser._is_application_frame("    /path/to/src/file.py:30: in method")
-        assert parser._is_application_frame("    /path/to/tests/test_file.py:40: in test")
+        assert parser._is_application_frame(  # noqa: SLF001
+            "    src/module.py:10: in function"
+        )
+        assert parser._is_application_frame(  # noqa: SLF001
+            "    tests/test_module.py:20: in test"
+        )
+        assert parser._is_application_frame(  # noqa: SLF001
+            "    /path/to/src/file.py:30: in method"
+        )
+        assert parser._is_application_frame(  # noqa: SLF001
+            "    /path/to/tests/test_file.py:40: in test"
+        )
 
         # Non-application frames
-        assert not parser._is_application_frame("    /usr/lib/python3.12/json.py:10: in loads")
-        assert not parser._is_application_frame("    /external/lib.py:20: in process")
+        assert not parser._is_application_frame(  # noqa: SLF001
+            "    /usr/lib/python3.12/json.py:10: in loads"
+        )
+        assert not parser._is_application_frame(  # noqa: SLF001
+            "    /external/lib.py:20: in process"
+        )
 
     def test_is_framework_frame(self) -> None:
         """Test framework frame detection."""
         parser = PytestOutputParser()
 
         # Framework frames
-        assert parser._is_framework_frame("    /_pytest/runner.py:123: in call")
-        assert parser._is_framework_frame("    /site-packages/_pytest/python.py:456: in runtest")
-        assert parser._is_framework_frame("    /pluggy/_hooks.py:789: in __call__")
-        assert parser._is_framework_frame("    <frozen importlib._bootstrap>:123: in _find_and_load")
-        assert parser._is_framework_frame("    /unittest/case.py:100: in run")
+        assert parser._is_framework_frame(  # noqa: SLF001
+            "    /_pytest/runner.py:123: in call"
+        )
+        assert parser._is_framework_frame(  # noqa: SLF001
+            "    /site-packages/_pytest/python.py:456: in runtest"
+        )
+        assert parser._is_framework_frame(  # noqa: SLF001
+            "    /pluggy/_hooks.py:789: in __call__"
+        )
+        assert parser._is_framework_frame(  # noqa: SLF001
+            "    <frozen importlib._bootstrap>:123: in _find_and_load"
+        )
+        assert parser._is_framework_frame(  # noqa: SLF001
+            "    /unittest/case.py:100: in run"
+        )
 
         # Non-framework frames
-        assert not parser._is_framework_frame("    src/module.py:10: in function")
-        assert not parser._is_framework_frame("    tests/test_module.py:20: in test")
+        assert not parser._is_framework_frame(  # noqa: SLF001
+            "    src/module.py:10: in function"
+        )
+        assert not parser._is_framework_frame(  # noqa: SLF001
+            "    tests/test_module.py:20: in test"
+        )

@@ -48,7 +48,7 @@ class TestMCPServerInitialization:
             assert "DevContainer CLI not found" in str(exc_info.value)
 
     def test_server_provides_helpful_error_for_missing_cli(self) -> None:
-        """Test that server provides helpful error message when CLI is missing."""
+        """Test helpful error message when CLI is missing."""
         config = PowerConfig(repository_root=Path.cwd())
 
         error_message = (
@@ -101,10 +101,13 @@ class TestMCPToolRegistration:
             return PantsDevContainerServer(config)
 
     @pytest.mark.asyncio
-    async def test_server_registers_all_pants_command_tools(self, server: PantsDevContainerServer) -> None:
+    async def test_server_registers_all_pants_command_tools(
+        self, server: PantsDevContainerServer
+    ) -> None:
         """Test that server registers all 5 Pants command tools."""
-        # We can't directly access internal handlers, so we test that the server
-        # was initialized successfully and has the expected structure
+        # We can't directly access internal handlers, so we test that
+        # the server was initialized successfully and has the expected
+        # structure
         assert server.server is not None
         assert server.pants_commands is not None
 
@@ -117,7 +120,9 @@ class TestMCPToolRegistration:
         assert server.container_lifecycle is not None
 
     @pytest.mark.asyncio
-    async def test_server_registers_all_workflow_tools(self, server: PantsDevContainerServer) -> None:
+    async def test_server_registers_all_workflow_tools(
+        self, server: PantsDevContainerServer
+    ) -> None:
         """Test that server registers all 2 workflow tools."""
         assert server.server is not None
         assert server.workflow_tools is not None

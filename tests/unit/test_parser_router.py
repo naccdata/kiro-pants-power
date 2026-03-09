@@ -130,7 +130,7 @@ class TestParserRouter:
             skip_count=0, failures=[], execution_time=0.0
         )
 
-        result = router.parse_command_output(
+        router.parse_command_output(
             "pants test ::",
             command_result,
             report_dir="/tmp/reports"
@@ -183,7 +183,9 @@ class TestParserRouter:
         mock_parsers['sandbox'].extract_sandboxes.return_value = []
 
         # Mock _find_and_parse_coverage to raise an exception
-        router._find_and_parse_coverage = Mock(side_effect=Exception("Parse error"))
+        router._find_and_parse_coverage = Mock(  # noqa: SLF001
+            side_effect=Exception("Parse error")
+        )
 
         result = router.parse_command_output(
             "pants test ::",
@@ -256,7 +258,9 @@ class TestParserRouter:
         assert result.test_results is None
         assert result.coverage_data is None
 
-    def test_find_and_parse_coverage_with_standard_json(self, router, mock_parsers):
+    def test_find_and_parse_coverage_with_standard_json(
+        self, router, mock_parsers
+    ):
         """Test finding and parsing standard coverage.json file."""
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create a coverage.json file
@@ -268,14 +272,18 @@ class TestParserRouter:
                 file_coverage={},
                 report_path=str(coverage_file)
             )
-            mock_parsers['coverage'].parse_coverage.return_value = mock_coverage_data
+            mock_parsers['coverage'].parse_coverage.return_value = (
+                mock_coverage_data
+            )
 
-            result = router._find_and_parse_coverage(tmpdir)
+            result = router._find_and_parse_coverage(tmpdir)  # noqa: SLF001
 
             assert result == mock_coverage_data
             mock_parsers['coverage'].parse_coverage.assert_called_once()
 
-    def test_find_and_parse_coverage_with_standard_xml(self, router, mock_parsers):
+    def test_find_and_parse_coverage_with_standard_xml(
+        self, router, mock_parsers
+    ):
         """Test finding and parsing standard coverage.xml file."""
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create a coverage.xml file
@@ -287,21 +295,25 @@ class TestParserRouter:
                 file_coverage={},
                 report_path=str(coverage_file)
             )
-            mock_parsers['coverage'].parse_coverage.return_value = mock_coverage_data
+            mock_parsers['coverage'].parse_coverage.return_value = (
+                mock_coverage_data
+            )
 
-            result = router._find_and_parse_coverage(tmpdir)
+            result = router._find_and_parse_coverage(tmpdir)  # noqa: SLF001
 
             assert result == mock_coverage_data
 
     def test_find_and_parse_coverage_with_nonexistent_dir(self, router):
         """Test handling of nonexistent report directory."""
-        result = router._find_and_parse_coverage("/nonexistent/directory")
+        result = router._find_and_parse_coverage(  # noqa: SLF001
+            "/nonexistent/directory"
+        )
         assert result is None
 
     def test_find_and_parse_coverage_with_no_reports(self, router):
         """Test handling when no coverage reports are found."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            result = router._find_and_parse_coverage(tmpdir)
+            result = router._find_and_parse_coverage(tmpdir)  # noqa: SLF001
             assert result is None
 
     def test_find_and_parse_coverage_handles_parse_errors(
@@ -317,7 +329,7 @@ class TestParserRouter:
                 "Parse error"
             )
 
-            result = router._find_and_parse_coverage(tmpdir)
+            result = router._find_and_parse_coverage(tmpdir)  # noqa: SLF001
 
             # Should return None and not raise exception
             assert result is None
