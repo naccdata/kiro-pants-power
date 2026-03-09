@@ -9,7 +9,10 @@ class TestMyPyOutputParser:
     def test_extract_error_line_with_column(self) -> None:
         """Test extracting a MyPy error line with column number."""
         parser = MyPyOutputParser()
-        line = 'src/main.py:42:10: error: Argument 1 has incompatible type "str"; expected "int"  [arg-type]'
+        line = (
+            'src/main.py:42:10: error: Argument 1 has incompatible type '
+            '"str"; expected "int"  [arg-type]'
+        )
 
         error = parser.extract_error_line(line)
 
@@ -23,7 +26,10 @@ class TestMyPyOutputParser:
     def test_extract_error_line_without_column(self) -> None:
         """Test extracting a MyPy error line without column number."""
         parser = MyPyOutputParser()
-        line = 'src/utils.py:15: error: Function is missing a return type annotation  [no-untyped-def]'
+        line = (
+            'src/utils.py:15: error: Function is missing a return type '
+            'annotation  [no-untyped-def]'
+        )
 
         error = parser.extract_error_line(line)
 
@@ -221,7 +227,7 @@ Found 1 error in 1 file (checked 5 source files)
         assert len(result.report_paths) == 0
 
     def test_parse_output_with_file_paths_containing_colons(self) -> None:
-        """Test parsing errors from files with paths containing colons (Windows paths)."""
+        """Test parsing errors from files with paths containing colons."""
         parser = MyPyOutputParser()
         # Note: This is a tricky case - Windows paths like C:\path\file.py
         # The regex should handle the first colon as part of the path
@@ -287,7 +293,10 @@ Found 3 errors in 1 file (checked 5 source files)
     def test_extract_error_line_with_complex_message(self) -> None:
         """Test extracting error with complex multi-part message."""
         parser = MyPyOutputParser()
-        line = 'src/main.py:42:10: error: Argument 1 to "func" has incompatible type "str"; expected "int"  [arg-type]'
+        line = (
+            'src/main.py:42:10: error: Argument 1 to "func" has '
+            'incompatible type "str"; expected "int"  [arg-type]'
+        )
 
         error = parser.extract_error_line(line)
 
@@ -296,7 +305,10 @@ Found 3 errors in 1 file (checked 5 source files)
         assert error.line_number == 42
         assert error.column == 10
         assert error.error_code == "arg-type"
-        assert 'Argument 1 to "func" has incompatible type "str"; expected "int"' in error.error_message
+        assert (
+            'Argument 1 to "func" has incompatible type "str"; '
+            'expected "int"' in error.error_message
+        )
 
     def test_parse_output_real_world_example(self) -> None:
         """Test parsing a real-world MyPy output example."""
@@ -309,13 +321,15 @@ tests/test_parser.py:10:20: error: Argument 1 to "parse_output" has incompatible
 tests/test_parser.py:15: error: Function is missing a return type annotation  [no-untyped-def]
 Writing HTML report to .mypy_cache/html/
 Found 5 errors in 3 files (checked 15 source files)
-"""
+"""  # noqa: E501
 
         result = parser.parse_output(output)
 
         assert result.error_count == 5
         assert len(result.errors_by_file) == 3
-        assert len(result.errors_by_file["src/parsers/mypy_parser.py"]) == 2
+        assert (
+            len(result.errors_by_file["src/parsers/mypy_parser.py"]) == 2
+        )
         assert len(result.errors_by_file["src/models.py"]) == 1
         assert len(result.errors_by_file["tests/test_parser.py"]) == 2
         assert len(result.report_paths) == 1

@@ -418,9 +418,11 @@ class TestFormatParsedOutput:
 class TestDetermineErrorType:
     """Tests for _determine_error_type method."""
 
-    def test_determine_test_failure(self, formatter, sample_command_result, sample_test_results):
+    def test_determine_test_failure(
+        self, formatter, sample_command_result, sample_test_results
+    ):
         """Test determining test failure error type."""
-        error_type = formatter._determine_error_type(
+        error_type = formatter._determine_error_type(  # noqa: SLF001
             sample_command_result,
             sample_test_results,
             None,
@@ -429,9 +431,11 @@ class TestDetermineErrorType:
 
         assert error_type == "Test Failure"
 
-    def test_determine_type_error(self, formatter, sample_command_result, sample_type_results):
+    def test_determine_type_error(
+        self, formatter, sample_command_result, sample_type_results
+    ):
         """Test determining type error error type."""
-        error_type = formatter._determine_error_type(
+        error_type = formatter._determine_error_type(  # noqa: SLF001
             sample_command_result,
             None,
             sample_type_results,
@@ -442,7 +446,7 @@ class TestDetermineErrorType:
 
     def test_determine_execution_error(self, formatter, sample_command_result):
         """Test determining execution error type."""
-        error_type = formatter._determine_error_type(
+        error_type = formatter._determine_error_type(  # noqa: SLF001
             sample_command_result,
             None,
             None,
@@ -460,7 +464,7 @@ class TestDetermineErrorType:
             command="pants test ::",
             success=True,
         )
-        error_type = formatter._determine_error_type(
+        error_type = formatter._determine_error_type(  # noqa: SLF001
             success_result,
             None,
             None,
