@@ -57,7 +57,9 @@ class CoverageReportParser:
                         raise ValueError(f"Unknown coverage report format: {report_path}")
             except Exception as e:
                 logger.error(f"Failed to detect coverage report format: {e}")
-                raise ValueError(f"Could not determine coverage report format: {report_path}")
+                raise ValueError(
+                    f"Could not determine coverage report format: {report_path}"
+                ) from e
 
     def parse_json_coverage(self, json_path: str) -> CoverageData:
         """Parse JSON coverage report.
@@ -102,10 +104,7 @@ class CoverageReportParser:
             total_lines = summary.get("num_statements", 0)
 
             # Calculate coverage percentage for this file
-            if total_lines > 0:
-                coverage_percent = (covered_lines / total_lines) * 100.0
-            else:
-                coverage_percent = 0.0
+            coverage_percent = covered_lines / total_lines * 100.0 if total_lines > 0 else 0.0
 
             # Extract uncovered line ranges
             uncovered_ranges = self._extract_uncovered_ranges_from_json(file_data)

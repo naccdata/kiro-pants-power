@@ -72,7 +72,9 @@ class WorkflowOrchestrator:
         self,
         steps: list[str],
         target: str | None = None,
-        progress_callback: Callable[[str, CommandResult | EnhancedCommandResult], None] | None = None
+        progress_callback: (
+            Callable[[str, CommandResult | EnhancedCommandResult], None] | None
+        ) = None
     ) -> WorkflowResult | EnhancedWorkflowResult:
         """Execute workflow steps in sequence, stopping on first failure.
 
@@ -170,7 +172,11 @@ class WorkflowOrchestrator:
                             parsed_output=ParsedOutput(),
                             formatted_summary="",
                             execution_time=step_timings.get(
-                                steps_completed[enhanced_results.__len__()] if enhanced_results.__len__() < len(steps_completed) else steps[enhanced_results.__len__()],
+                                (
+                                    steps_completed[enhanced_results.__len__()]
+                                    if enhanced_results.__len__() < len(steps_completed)
+                                    else steps[enhanced_results.__len__()]
+                                ),
                                 0.0
                             )
                         )

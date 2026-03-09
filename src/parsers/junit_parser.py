@@ -11,20 +11,20 @@ logger = logging.getLogger(__name__)
 
 class JUnitXMLParser:
     """Parser for JUnit XML test report files.
-    
+
     Extracts structured test results including test counts, execution times,
     and detailed failure information from JUnit XML format reports.
     """
 
     def parse_reports(self, report_dir: str) -> TestResults:
         """Parse all JUnit XML files in a directory.
-        
+
         Aggregates results from all XML files found in the directory,
         combining test counts and failure details.
-        
+
         Args:
             report_dir: Path to directory containing JUnit XML report files
-            
+
         Returns:
             TestResults object with aggregated results from all reports
         """
@@ -85,18 +85,18 @@ class JUnitXMLParser:
             execution_time=total_time
         )
 
-    def parse_single_report(self, xml_path: str) -> TestResults:
+    def parse_single_report(self, xml_path: str) -> TestResults:  # noqa: C901
         """Parse a single JUnit XML file.
-        
+
         Extracts test case information including names, status, execution times,
         and failure details from a single JUnit XML report file.
-        
+
         Args:
             xml_path: Path to the JUnit XML file
-            
+
         Returns:
             TestResults object with parsed test information
-            
+
         Raises:
             FileNotFoundError: If the XML file does not exist
             ET.ParseError: If the XML is malformed

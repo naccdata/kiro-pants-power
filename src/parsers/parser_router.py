@@ -44,7 +44,7 @@ class ParserRouter:
         self.pytest_parser = pytest_parser or PytestOutputParser()
         self.sandbox_extractor = sandbox_extractor or SandboxPathExtractor()
 
-    def parse_command_output(
+    def parse_command_output(  # noqa: C901
         self,
         command: str,
         result: CommandResult,
