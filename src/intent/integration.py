@@ -290,7 +290,13 @@ def execute_with_error_handling(
             # Pants execution failed - translate error
             error_translator = ErrorTranslator(config)
             stderr = e.stderr if hasattr(e, "stderr") else str(e)
-            translated = error_translator.translate_error(stderr, intent_context)
+            stdout = e.stdout if hasattr(e, "stdout") else ""
+            
+            # Combine stdout and stderr for full error context
+            # Pants writes detailed output (test failures, stack traces) to stdout
+            full_error = f"{stdout}\n{stderr}".strip() if stdout else stderr
+            
+            translated = error_translator.translate_error(full_error, intent_context)
 
             return ErrorResponse(
                 success=False,

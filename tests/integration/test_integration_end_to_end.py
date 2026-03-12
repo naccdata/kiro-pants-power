@@ -398,6 +398,47 @@ def test_execute_with_error_handling_pants_error(temp_repo, default_config):
     assert response.raw_error is not None
 
 
+def test_execute_with_error_handling_pants_error_with_stdout(temp_repo, default_config):
+    """Test execute_with_error_handling includes stdout in error messages."""
+    # Create a test file so path validation passes
+    test_file = temp_repo / "test_example.py"
+    test_file.write_text("def test_function(): pass")
+    
+    # Mock Pants executor that returns failure with detailed output in stdout
+    def mock_executor(command, target_spec, options):
+        return CommandResult(
+            exit_code=1,
+            stdout="FAILED test_example.py::test_function - AssertionError: expected 5 but got 3\n"
+                   "Traceback (most recent call last):\n"
+                   "  File 'test_example.py', line 10, in test_function\n"
+                   "    assert result == 5\n"
+                   "AssertionError: expected 5 but got 3",
+            stderr="✕ test_example.py:tests failed in 2.5s.",
+            command=f"pants {command} {target_spec}",
+            success=False,
+        )
+
+    response = execute_with_error_handling(
+        scope="file",
+        path="test_example.py",
+        recursive=False,
+        test_filter=None,
+        config=default_config,
+        repo_root=temp_repo,
+        pants_executor=mock_executor,
+        command="test",
+    )
+
+    assert isinstance(response, ErrorResponse)
+    assert response.success is False
+    assert response.error_type == "pants"
+    # Verify stdout content is included in the error message
+    assert "AssertionError" in response.message or "AssertionError" in response.raw_error
+    assert "Traceback" in response.message or "Traceback" in response.raw_error
+    # Verify stderr is also included
+    assert "failed" in response.message or "failed" in response.raw_error
+
+
 def test_execute_with_error_handling_mapping_error(temp_repo, default_config):
     """Test execute_with_error_handling with mapping error."""
     def mock_executor(command, target_spec, options):
