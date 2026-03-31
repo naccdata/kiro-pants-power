@@ -124,15 +124,18 @@ class TestPantsDevContainerServer:
             assert server.server is not None
 
     def test_server_initialization_validates_prerequisites(self) -> None:
-        """Test server validates prerequisites during initialization."""
+        """Test server gracefully degrades when prerequisites are missing."""
         config = PowerConfig()
 
         # Mock ContainerManager to raise ContainerError
         with patch(
             "src.server.ContainerManager",
             side_effect=ContainerError("DevContainer CLI not found"),
-        ), pytest.raises(PowerError, match="DevContainer CLI not found"):
-            PantsDevContainerServer(config)
+        ):
+            server = PantsDevContainerServer(config)
+
+            assert server._devcontainer_available is False
+            assert "DevContainer CLI not found" in server._unavailable_reason
 
     def test_server_creates_mcp_server_with_correct_name(self, mock_config: PowerConfig) -> None:
         """Test server creates MCP Server with config name."""

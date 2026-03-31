@@ -34,7 +34,7 @@ class TestMCPServerInitialization:
             assert server.workflow_tools is not None
 
     def test_server_initialization_validates_prerequisites(self) -> None:
-        """Test that server validates devcontainer CLI and .devcontainer/ on startup."""
+        """Test that server gracefully degrades when devcontainer CLI is missing."""
         config = PowerConfig(repository_root=Path.cwd())
 
         # Mock ContainerManager to raise ContainerError
@@ -42,13 +42,13 @@ class TestMCPServerInitialization:
             "src.server.ContainerManager",
             side_effect=ContainerError("DevContainer CLI not found")
         ):
-            with pytest.raises(Exception) as exc_info:
-                PantsDevContainerServer(config)
+            server = PantsDevContainerServer(config)
 
-            assert "DevContainer CLI not found" in str(exc_info.value)
+            assert server._devcontainer_available is False
+            assert "DevContainer CLI not found" in server._unavailable_reason
 
     def test_server_provides_helpful_error_for_missing_cli(self) -> None:
-        """Test helpful error message when CLI is missing."""
+        """Test helpful message stored when CLI is missing."""
         config = PowerConfig(repository_root=Path.cwd())
 
         error_message = (
@@ -61,13 +61,13 @@ class TestMCPServerInitialization:
             "src.server.ContainerManager",
             side_effect=ContainerError(error_message)
         ):
-            with pytest.raises(Exception) as exc_info:
-                PantsDevContainerServer(config)
+            server = PantsDevContainerServer(config)
 
-            assert "npm install -g @devcontainers/cli" in str(exc_info.value)
+            assert server._devcontainer_available is False
+            assert "npm install -g @devcontainers/cli" in server._unavailable_reason
 
     def test_server_provides_helpful_error_for_missing_devcontainer_dir(self) -> None:
-        """Test that server provides helpful error when .devcontainer/ is missing."""
+        """Test that server stores helpful message when .devcontainer/ is missing."""
         config = PowerConfig(repository_root=Path.cwd())
 
         error_message = (
@@ -79,10 +79,10 @@ class TestMCPServerInitialization:
             "src.server.ContainerManager",
             side_effect=ContainerError(error_message)
         ):
-            with pytest.raises(Exception) as exc_info:
-                PantsDevContainerServer(config)
+            server = PantsDevContainerServer(config)
 
-            assert ".devcontainer/" in str(exc_info.value)
+            assert server._devcontainer_available is False
+            assert ".devcontainer/" in server._unavailable_reason
 
 
 class TestMCPToolRegistration:

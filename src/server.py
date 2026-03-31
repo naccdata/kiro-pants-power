@@ -132,23 +132,27 @@ class PantsDevContainerServer:
 
         Args:
             config: PowerConfig instance (creates default if None)
-
-        Raises:
-            PowerError: If prerequisites are not met
         """
         self.config = config or PowerConfig()
 
-        # Validate prerequisites on startup
-        self.config.validate()
+        # Check if devcontainer environment is available (don't exit if not)
+        self._devcontainer_available = True
+        self._unavailable_reason = ""
+        try:
+            self.config.validate()
+        except PowerError as e:
+            self._devcontainer_available = False
+            self._unavailable_reason = str(e)
 
         # Initialize MCP server
         self.server = Server(self.config.name)
 
-        # Initialize components
-        self.pants_commands = PantsCommands()
-        self.container_lifecycle = ContainerLifecycle()
-        self.workflow_tools = WorkflowTools()
-        self.tool_executor = ToolExecutor(self.pants_commands)
+        # Initialize components only if devcontainer is available
+        if self._devcontainer_available:
+            self.pants_commands = PantsCommands()
+            self.container_lifecycle = ContainerLifecycle()
+            self.workflow_tools = WorkflowTools()
+            self.tool_executor = ToolExecutor(self.pants_commands)
 
         # Register tools
         self._register_tools()
@@ -302,6 +306,20 @@ class PantsDevContainerServer:
             Raises:
                 ValueError: If tool name is not recognized
             """
+            if not self._devcontainer_available:
+                return [
+                    TextContent(
+                        type="text",
+                        text=(
+                            "This tool is not available in the current workspace.\n\n"
+                            f"{self._unavailable_reason}\n\n"
+                            "This power requires a devcontainer-enabled repository "
+                            "to function. No action is needed — this is expected "
+                            "for workspaces without a devcontainer setup."
+                        ),
+                    )
+                ]
+
             try:
                 # Route to appropriate tool function
                 if name == "pants_fix":
@@ -474,15 +492,6 @@ async def async_main() -> None:
         server = PantsDevContainerServer(config)
         await server.run()
     except PowerError as e:
-        # Check if this is a "devcontainer not found" error - exit gracefully
-        error_msg = str(e)
-        if (
-            "DevContainer configuration not found" in error_msg
-            or "DevContainer CLI not found" in error_msg
-        ):
-            # Exit silently with success code - this workspace doesn't need this power
-            sys.exit(0)
-        # For other PowerErrors, log and exit with error code
         print(f"Failed to start server: {e}", file=sys.stderr)
         sys.exit(1)
     except Exception as e:
