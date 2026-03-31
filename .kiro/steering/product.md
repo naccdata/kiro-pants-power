@@ -1,5 +1,6 @@
 ---
 inclusion: auto
+description: Product overview and key features of the Pants DevContainer Power
 ---
 
 # Product Overview

@@ -1,5 +1,6 @@
 ---
 inclusion: auto
+description: Project structure, conventions, and component architecture
 ---
 
 # Project Structure

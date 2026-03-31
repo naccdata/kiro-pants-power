@@ -1,5 +1,6 @@
 ---
 inclusion: auto
+description: Technology stack, development tools, and workflow commands
 ---
 
 # Technology Stack
