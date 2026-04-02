@@ -39,6 +39,7 @@ from src.models import (
     WorkflowResult,
 )
 from src.pants_commands import PantsCommands
+from src.workflow_orchestrator import WorkflowOrchestrator
 from src.workflow_tools import WorkflowTools
 
 
@@ -149,10 +150,21 @@ class PantsDevContainerServer:
 
         # Initialize components only if devcontainer is available
         if self._devcontainer_available:
-            self.pants_commands = PantsCommands()
-            self.container_lifecycle = ContainerLifecycle()
-            self.workflow_tools = WorkflowTools()
-            self.tool_executor = ToolExecutor(self.pants_commands)
+            container_manager = ContainerManager(
+                workspace_folder=self.config.repository_root
+            )
+            self.pants_commands = PantsCommands(container_manager=container_manager)
+            self.container_lifecycle = ContainerLifecycle(
+                container_manager=container_manager
+            )
+            self.workflow_tools = WorkflowTools(
+                orchestrator=WorkflowOrchestrator(
+                    pants_commands=self.pants_commands
+                )
+            )
+            self.tool_executor = ToolExecutor(
+                self.pants_commands, repo_root=self.config.repository_root
+            )
 
         # Register tools
         self._register_tools()
