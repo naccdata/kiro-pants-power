@@ -39,8 +39,14 @@ addopts = [
     "--strict-markers",
     "--tb=short",
 ]
+filterwarnings = [
+    "ignore:cannot collect test class 'TestFailure':pytest.PytestCollectionWarning",
+    "ignore:cannot collect test class 'TestResults':pytest.PytestCollectionWarning",
+]
 markers = [
     "property: property-based tests using Hypothesis",
+    "property_test: property-based tests using Hypothesis",
+    "performance: performance benchmark tests",
     "feature: feature identifier for property tests",
 ]
 
