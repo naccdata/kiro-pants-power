@@ -8,6 +8,10 @@
     "version": "3.12"
   },
   "entrypoint": "src/server.py",
+  "args": ["--workspace", "${workspaceFolder}"],
+  "env": {
+    "WORKSPACE_FOLDER": "${workspaceFolder}"
+  },
   "tools": [
     {
       "name": "pants_fix",

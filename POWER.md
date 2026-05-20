@@ -581,10 +581,40 @@ pants_clear_cache()
 
 ## Configuration
 
+### Workspace Path Resolution
+
+The power determines its workspace (repository root) using this resolution order:
+
+1. **`--workspace` CLI argument** — passed automatically by Kiro via `power.json`
+2. **`WORKSPACE_FOLDER` environment variable** — set in the MCP server config's `env` block
+3. **Current working directory** — `Path.cwd()` (fallback)
+
+If you're seeing errors like "Current directory: /" or ".devcontainer/ not found", the power isn't receiving the workspace path. The recommended fix is to ensure the MCP config includes the workspace in `args` or `env`:
+
+```json
+{
+  "mcpServers": {
+    "pants-devcontainer-power": {
+      "command": "uvx",
+      "args": [
+        "--from", "git+https://github.com/naccdata/kiro-pants-power",
+        "pants-devcontainer-power",
+        "--workspace", "/path/to/your/workspace"
+      ],
+      "env": {
+        "WORKSPACE_FOLDER": "/path/to/your/workspace"
+      }
+    }
+  }
+}
+```
+
+**Note:** The `"cwd"` field in MCP config sets where the process is spawned, but `uvx` may not honor it. Always pass the workspace explicitly via `--workspace` or `WORKSPACE_FOLDER`.
+
 ### Environment Variables
 
 The power automatically sets these environment variables for devcontainer operations:
-- `WORKSPACE_FOLDER`: Current working directory (repository root)
+- `WORKSPACE_FOLDER`: Repository root path (resolved as described above)
 - `DOCKER_CLI_HINTS`: Set to "false" to suppress Docker hints
 
 ### Pants Target Specifications

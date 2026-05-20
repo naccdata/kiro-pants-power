@@ -4,7 +4,9 @@ This module implements the Model Context Protocol (MCP) server that exposes
 Pants build system tools with automatic devcontainer integration.
 """
 
+import argparse
 import asyncio
+import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -43,6 +45,22 @@ from src.workflow_orchestrator import WorkflowOrchestrator
 from src.workflow_tools import WorkflowTools
 
 
+def _resolve_workspace_path() -> Path:
+    """Resolve the workspace path from environment or cwd.
+
+    Resolution order:
+        1. WORKSPACE_FOLDER environment variable
+        2. Current working directory (Path.cwd())
+
+    Returns:
+        Resolved Path to the workspace root
+    """
+    env_workspace = os.environ.get("WORKSPACE_FOLDER")
+    if env_workspace:
+        return Path(env_workspace).resolve()
+    return Path.cwd()
+
+
 class PowerConfig:
     """Configuration for the Pants DevContainer Power.
 
@@ -77,7 +95,10 @@ class PowerConfig:
             version: Power version
             description: Power description
             python_version: Required Python version
-            repository_root: Path to repository root (uses current directory if None)
+            repository_root: Path to repository root. Resolution order:
+                1. Explicit value passed here (e.g. from --workspace CLI arg)
+                2. WORKSPACE_FOLDER environment variable
+                3. Current working directory (Path.cwd())
             report_output_dir: Directory where Pants generates report files
                 (default: "dist/test-reports")
             max_errors_per_category: Maximum number of errors to show per
@@ -91,7 +112,7 @@ class PowerConfig:
         self.version = version
         self.description = description
         self.python_version = python_version
-        self.repository_root = repository_root or Path.cwd()
+        self.repository_root = repository_root or _resolve_workspace_path()
         self.report_output_dir = report_output_dir
         self.max_errors_per_category = max_errors_per_category
         self.enable_verbose_parsing = enable_verbose_parsing
@@ -500,7 +521,21 @@ class PantsDevContainerServer:
 async def async_main() -> None:
     """Async main entry point for the MCP server."""
     try:
-        config = PowerConfig()
+        parser = argparse.ArgumentParser(description="Pants DevContainer Power MCP server")
+        parser.add_argument(
+            "--workspace",
+            type=Path,
+            default=None,
+            help="Path to the workspace/repository root. "
+            "Overrides WORKSPACE_FOLDER env var and cwd.",
+        )
+        args = parser.parse_args()
+
+        workspace = args.workspace
+        if workspace is not None:
+            workspace = workspace.resolve()
+
+        config = PowerConfig(repository_root=workspace)
         server = PantsDevContainerServer(config)
         await server.run()
     except PowerError as e:
