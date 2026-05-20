@@ -61,6 +61,21 @@ def _resolve_workspace_path() -> Path:
     return Path.cwd()
 
 
+def _path_from_file_uri(uri: str) -> Path:
+    """Convert a file:// URI to a Path.
+
+    Args:
+        uri: A file:// URI string
+
+    Returns:
+        Path extracted from the URI
+    """
+    # file:///Users/foo/bar -> /Users/foo/bar
+    if uri.startswith("file://"):
+        return Path(uri[7:])
+    return Path(uri)
+
+
 class PowerConfig:
     """Configuration for the Pants DevContainer Power.
 
@@ -141,6 +156,12 @@ class PantsDevContainerServer:
     - Workflow tools (full_quality_check, pants_workflow)
     - Utility tools (pants_clear_cache)
 
+    The server resolves the workspace path using this priority:
+    1. --workspace CLI argument
+    2. WORKSPACE_FOLDER environment variable
+    3. MCP protocol roots (from client during first tool call)
+    4. Current working directory (fallback)
+
     Attributes:
         config: PowerConfig instance
         server: MCP Server instance
@@ -157,7 +178,25 @@ class PantsDevContainerServer:
         """
         self.config = config or PowerConfig()
 
-        # Check if devcontainer environment is available (don't exit if not)
+        # Track whether we've attempted workspace resolution via MCP roots
+        self._roots_resolved = False
+        self._initialized = False
+
+        # Initialize MCP server
+        self.server = Server(self.config.name)
+
+        # Attempt initial setup with current workspace path
+        self._try_initialize()
+
+        # Register tools
+        self._register_tools()
+
+    def _try_initialize(self) -> None:
+        """Attempt to initialize components with current workspace path.
+
+        Sets _devcontainer_available and _unavailable_reason based on whether
+        the devcontainer environment is accessible.
+        """
         self._devcontainer_available = True
         self._unavailable_reason = ""
         try:
@@ -165,9 +204,6 @@ class PantsDevContainerServer:
         except PowerError as e:
             self._devcontainer_available = False
             self._unavailable_reason = str(e)
-
-        # Initialize MCP server
-        self.server = Server(self.config.name)
 
         # Initialize components only if devcontainer is available
         if self._devcontainer_available:
@@ -186,9 +222,37 @@ class PantsDevContainerServer:
             self.tool_executor = ToolExecutor(
                 self.pants_commands, repo_root=self.config.repository_root
             )
+            self._initialized = True
 
-        # Register tools
-        self._register_tools()
+    async def _resolve_workspace_from_roots(self) -> bool:
+        """Try to resolve workspace path from MCP protocol roots.
+
+        This is called on the first tool invocation if the initial workspace
+        path didn't have a .devcontainer/ directory. It asks the MCP client
+        (Kiro) for its workspace roots via the protocol.
+
+        Returns:
+            True if workspace was successfully resolved and components initialized
+        """
+        if self._roots_resolved:
+            return False
+        self._roots_resolved = True
+
+        try:
+            session = self.server.request_context.session
+            result = await session.list_roots()
+            if result.roots:
+                # Use the first root as the workspace
+                root_path = _path_from_file_uri(str(result.roots[0].uri))
+                if root_path.exists() and (root_path / ".devcontainer").exists():
+                    self.config.repository_root = root_path
+                    self._try_initialize()
+                    return self._devcontainer_available
+        except Exception:
+            # list_roots may not be supported by the client, or may fail
+            # for other reasons — that's fine, we fall back gracefully
+            pass
+        return False
 
     def _register_tools(self) -> None:
         """Register all MCP tools with the server."""
@@ -339,6 +403,11 @@ class PantsDevContainerServer:
             Raises:
                 ValueError: If tool name is not recognized
             """
+            # If devcontainer wasn't available at startup, try resolving
+            # workspace from MCP roots (the client may provide it)
+            if not self._devcontainer_available and not self._roots_resolved:
+                await self._resolve_workspace_from_roots()
+
             if not self._devcontainer_available:
                 return [
                     TextContent(

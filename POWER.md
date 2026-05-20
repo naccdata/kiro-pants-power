@@ -585,37 +585,24 @@ pants_clear_cache()
 
 The power determines its workspace (repository root) using this resolution order:
 
-1. **`--workspace` CLI argument** — passed automatically by Kiro via `power.json`
+1. **`--workspace` CLI argument** — for manual/scripted invocation
 2. **`WORKSPACE_FOLDER` environment variable** — set in the MCP server config's `env` block
-3. **Current working directory** — `Path.cwd()` (fallback)
+3. **MCP protocol roots** — the workspace root provided by Kiro via the MCP protocol at first tool call
+4. **Current working directory** — `Path.cwd()` (final fallback)
 
-If you're seeing errors like "Current directory: /" or ".devcontainer/ not found", the power isn't receiving the workspace path. The recommended fix is to ensure the MCP config includes the workspace in `args` or `env`:
+In normal usage with Kiro, you shouldn't need to configure anything manually. The power's `mcp.json` sets `WORKSPACE_FOLDER` to `${workspaceFolder}`, and the MCP protocol roots provide an additional automatic discovery mechanism.
 
-```json
-{
-  "mcpServers": {
-    "pants-devcontainer-power": {
-      "command": "uvx",
-      "args": [
-        "--from", "git+https://github.com/naccdata/kiro-pants-power",
-        "pants-devcontainer-power",
-        "--workspace", "/path/to/your/workspace"
-      ],
-      "env": {
-        "WORKSPACE_FOLDER": "/path/to/your/workspace"
-      }
-    }
-  }
-}
+If you're seeing errors like "Current directory: /" or ".devcontainer/ not found", it likely means Kiro isn't interpolating `${workspaceFolder}` in the env block. The MCP roots fallback should handle this automatically on the first tool call. If it doesn't, you can set the env var explicitly in your shell before launching Kiro:
+
+```bash
+export WORKSPACE_FOLDER=/path/to/your/workspace
 ```
-
-**Note:** The `"cwd"` field in MCP config sets where the process is spawned, but `uvx` may not honor it. Always pass the workspace explicitly via `--workspace` or `WORKSPACE_FOLDER`.
 
 ### Environment Variables
 
-The power automatically sets these environment variables for devcontainer operations:
-- `WORKSPACE_FOLDER`: Repository root path (resolved as described above)
-- `DOCKER_CLI_HINTS`: Set to "false" to suppress Docker hints
+The power uses or sets these environment variables:
+- `WORKSPACE_FOLDER`: Repository root path (read at startup for workspace resolution; also set for devcontainer commands)
+- `DOCKER_CLI_HINTS`: Set to "false" to suppress Docker hints during container operations
 
 ### Pants Target Specifications
 
