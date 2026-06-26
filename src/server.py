@@ -47,20 +47,30 @@ from src.workflow_orchestrator import WorkflowOrchestrator
 from src.workflow_tools import WorkflowTools
 
 
-def _resolve_workspace_path() -> Path:
+def _resolve_workspace_path() -> Path | None:
     """Resolve the workspace path from environment or cwd.
 
     Resolution order:
-        1. WORKSPACE_FOLDER environment variable
-        2. Current working directory (Path.cwd())
+        1. WORKSPACE_FOLDER environment variable (for explicit configuration)
+        2. Current working directory IF it contains .devcontainer/
+        3. None (defer to MCP roots resolution on first tool call)
 
     Returns:
-        Resolved Path to the workspace root
+        Resolved Path to the workspace root, or None if no valid workspace found
     """
     env_workspace = os.environ.get("WORKSPACE_FOLDER")
     if env_workspace:
-        return Path(env_workspace).resolve()
-    return Path.cwd()
+        path = Path(env_workspace).resolve()
+        if path.exists():
+            return path
+
+    # Only use cwd if it actually looks like the target workspace
+    cwd = Path.cwd()
+    if (cwd / ".devcontainer").exists():
+        return cwd
+
+    # Defer to MCP roots resolution
+    return None
 
 
 def _path_from_file_uri(uri: str) -> Path:
@@ -115,7 +125,8 @@ class PowerConfig:
             repository_root: Path to repository root. Resolution order:
                 1. Explicit value passed here (e.g. from --workspace CLI arg)
                 2. WORKSPACE_FOLDER environment variable
-                3. Current working directory (Path.cwd())
+                3. Current working directory (if it contains .devcontainer/)
+                4. MCP protocol roots (resolved async on first tool call)
             report_output_dir: Directory where Pants generates report files
                 (default: "dist/test-reports")
             max_errors_per_category: Maximum number of errors to show per
@@ -201,6 +212,16 @@ class PantsDevContainerServer:
         """
         self._devcontainer_available = True
         self._unavailable_reason = ""
+
+        # If no workspace path resolved, defer to MCP roots
+        if self.config.repository_root is None:
+            self._devcontainer_available = False
+            self._unavailable_reason = (
+                "No workspace path resolved at startup. "
+                "Will attempt to resolve from MCP roots on first tool call."
+            )
+            return
+
         try:
             self.config.validate()
         except PowerError as e:
@@ -235,9 +256,9 @@ class PantsDevContainerServer:
     async def _resolve_workspace_from_roots(self) -> bool:
         """Try to resolve workspace path from MCP protocol roots.
 
-        This is called on the first tool invocation if the initial workspace
-        path didn't have a .devcontainer/ directory. It asks the MCP client
-        (Kiro) for its workspace roots via the protocol.
+        This is called on the first tool invocation if no valid workspace was
+        found at startup. It asks the MCP client (Kiro) for its workspace
+        roots via the protocol and looks for one with a .devcontainer/ directory.
 
         Returns:
             True if workspace was successfully resolved and components initialized
@@ -250,12 +271,13 @@ class PantsDevContainerServer:
             session = self.server.request_context.session
             result = await session.list_roots()
             if result.roots:
-                # Use the first root as the workspace
-                root_path = _path_from_file_uri(str(result.roots[0].uri))
-                if root_path.exists() and (root_path / ".devcontainer").exists():
-                    self.config.repository_root = root_path
-                    self._try_initialize()
-                    return self._devcontainer_available
+                # Search all roots for one with .devcontainer/
+                for root in result.roots:
+                    root_path = _path_from_file_uri(str(root.uri))
+                    if root_path.exists() and (root_path / ".devcontainer").exists():
+                        self.config.repository_root = root_path
+                        self._try_initialize()
+                        return self._devcontainer_available
         except Exception:
             # list_roots may not be supported by the client, or may fail
             # for other reasons — that's fine, we fall back gracefully
