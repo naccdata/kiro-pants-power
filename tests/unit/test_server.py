@@ -13,151 +13,154 @@ from src.models import (
     ValidationError,
     WorkflowResult,
 )
-from src.server import PantsDevContainerServer, PowerConfig
+from src.server import PantsDevContainerServer, WorkspaceSession, _inject_workspace_param
 
 
-class TestPowerConfig:
-    """Test suite for PowerConfig class."""
+class TestInjectWorkspaceParam:
+    """Test suite for _inject_workspace_param helper."""
 
-    def test_power_config_initialization_with_defaults(self) -> None:
-        """Test PowerConfig initializes with default values."""
-        config = PowerConfig()
+    def test_adds_workspace_folder_to_empty_schema(self) -> None:
+        """Test adding workspace_folder to a schema with no properties."""
+        schema = {"type": "object", "properties": {}}
+        result = _inject_workspace_param(schema)
 
-        assert config.name == "pants-devcontainer-power"
-        assert config.version == "0.1.0"
-        assert config.description == (
-            "MCP tools for Pants build system with devcontainer integration"
-        )
-        assert config.python_version == "3.12+"
-        # repository_root is None when cwd doesn't have .devcontainer/
-        # (defers to MCP roots resolution)
-        cwd = Path.cwd()
-        if (cwd / ".devcontainer").exists():
-            assert config.repository_root == cwd
-        else:
-            assert config.repository_root is None
+        assert "workspace_folder" in result["properties"]
+        assert result["required"] == ["workspace_folder"]
 
-    def test_power_config_initialization_with_custom_values(self) -> None:
-        """Test PowerConfig initializes with custom values."""
-        custom_root = Path("/custom/path")
-        config = PowerConfig(
-            name="custom-power",
-            version="1.0.0",
-            description="Custom description",
-            python_version="3.11+",
-            repository_root=custom_root,
-        )
+    def test_adds_workspace_folder_to_schema_with_existing_required(self) -> None:
+        """Test adding workspace_folder to schema that already has required fields."""
+        schema = {
+            "type": "object",
+            "properties": {
+                "command": {"type": "string", "description": "A command"},
+            },
+            "required": ["command"],
+        }
+        result = _inject_workspace_param(schema)
 
-        assert config.name == "custom-power"
-        assert config.version == "1.0.0"
-        assert config.description == "Custom description"
-        assert config.python_version == "3.11+"
-        assert config.repository_root == custom_root
+        assert "workspace_folder" in result["properties"]
+        assert "command" in result["properties"]
+        assert result["required"] == ["workspace_folder", "command"]
 
-    def test_power_config_validate_success(self) -> None:
-        """Test PowerConfig.validate() succeeds when prerequisites are met."""
-        config = PowerConfig()
+    def test_does_not_duplicate_workspace_folder_in_required(self) -> None:
+        """Test that workspace_folder isn't duplicated if already in required."""
+        schema = {
+            "type": "object",
+            "properties": {},
+            "required": ["workspace_folder"],
+        }
+        result = _inject_workspace_param(schema)
+        assert result["required"].count("workspace_folder") == 1
 
-        # Mock ContainerManager to not raise errors
-        with patch("src.server.ContainerManager"):
-            # Should not raise any exception
-            config.validate()
+    def test_does_not_mutate_original_schema(self) -> None:
+        """Test that the original schema dict is not mutated."""
+        schema = {"type": "object", "properties": {"x": {"type": "string"}}}
+        _inject_workspace_param(schema)
+        assert "workspace_folder" not in schema["properties"]
 
-    def test_power_config_validate_raises_power_error_on_container_error(self) -> None:
-        """Test PowerConfig.validate() raises PowerError when ContainerManager fails."""
-        config = PowerConfig()
 
-        # Mock ContainerManager to raise ContainerError
-        with patch(
-            "src.server.ContainerManager",
-            side_effect=ContainerError("DevContainer CLI not found"),
-        ), pytest.raises(PowerError, match="DevContainer CLI not found"):
-            config.validate()
+class TestWorkspaceSession:
+    """Test suite for WorkspaceSession class."""
+
+    def test_session_initializes_components(self, tmp_path: Path) -> None:
+        """Test that WorkspaceSession creates all components."""
+        # Create .devcontainer/ so ContainerManager doesn't complain
+        (tmp_path / ".devcontainer").mkdir()
+
+        with patch("src.container_manager.shutil.which", return_value="/usr/bin/devcontainer"):
+            session = WorkspaceSession(workspace_folder=tmp_path)
+
+        assert session.workspace_folder == tmp_path
+        assert session.container_manager is not None
+        assert session.pants_commands is not None
+        assert session.container_lifecycle is not None
+        assert session.workflow_tools is not None
+        assert session.tool_executor is not None
+
+    def test_session_raises_container_error_without_devcontainer_dir(
+        self, tmp_path: Path
+    ) -> None:
+        """Test that session raises ContainerError if .devcontainer/ is missing."""
+        with patch("src.container_manager.shutil.which", return_value="/usr/bin/devcontainer"):
+            with pytest.raises(ContainerError, match="DevContainer configuration not found"):
+                WorkspaceSession(workspace_folder=tmp_path)
+
+    def test_session_raises_container_error_without_cli(self, tmp_path: Path) -> None:
+        """Test that session raises ContainerError if devcontainer CLI is missing."""
+        (tmp_path / ".devcontainer").mkdir()
+
+        with patch("src.container_manager.shutil.which", return_value=None):
+            with pytest.raises(ContainerError, match="DevContainer CLI not found"):
+                WorkspaceSession(workspace_folder=tmp_path)
 
 
 class TestPantsDevContainerServer:
     """Test suite for PantsDevContainerServer class."""
 
-    @pytest.fixture
-    def mock_config(self) -> PowerConfig:
-        """Create a PowerConfig for testing."""
-        return PowerConfig(repository_root=Path.cwd())
+    def test_server_initializes_without_error(self) -> None:
+        """Test server initializes successfully with no startup validation."""
+        server = PantsDevContainerServer()
+        assert server.server is not None
+        assert server._sessions == {}
 
-    @pytest.fixture
-    def server(self, mock_config: PowerConfig) -> PantsDevContainerServer:
-        """Create a PantsDevContainerServer with mocked dependencies."""
-        # Mock all component classes to avoid validation
-        with patch("src.server.ContainerManager"), \
-             patch("src.server.PantsCommands") as mock_pants, \
-             patch("src.server.ContainerLifecycle") as mock_lifecycle, \
-             patch("src.server.WorkflowTools") as mock_workflow:
+    def test_server_creates_mcp_server_with_correct_name(self) -> None:
+        """Test server creates MCP Server with expected name."""
+        with patch("src.server.Server") as mock_server_class:
+            PantsDevContainerServer()
+            mock_server_class.assert_called_once_with("pants-devcontainer-power")
 
-            server = PantsDevContainerServer(mock_config)
+    def test_get_session_returns_cached_session(self, tmp_path: Path) -> None:
+        """Test that _get_session caches and reuses sessions."""
+        (tmp_path / ".devcontainer").mkdir()
+        server = PantsDevContainerServer()
 
-            # Replace mocked components with controllable Mock objects
-            server.pants_commands = mock_pants.return_value
-            server.container_lifecycle = mock_lifecycle.return_value
-            server.workflow_tools = mock_workflow.return_value
+        with patch("src.container_manager.shutil.which", return_value="/usr/bin/devcontainer"):
+            session1 = server._get_session(str(tmp_path))
+            session2 = server._get_session(str(tmp_path))
 
-            return server
+        assert session1 is session2
 
-    def test_server_initialization_with_config(self, mock_config: PowerConfig) -> None:
-        """Test server initializes with provided config."""
-        with patch("src.server.ContainerManager"), \
-             patch("src.server.PantsCommands"), \
-             patch("src.server.ContainerLifecycle"), \
-             patch("src.server.WorkflowTools"):
+    def test_get_session_raises_validation_error_when_missing(self) -> None:
+        """Test that _get_session raises ValidationError for None workspace."""
+        server = PantsDevContainerServer()
 
-            server = PantsDevContainerServer(mock_config)
+        with pytest.raises(ValidationError, match="workspace_folder.*required"):
+            server._get_session(None)
 
-            assert server.config == mock_config
-            assert server.server is not None
-            assert server.pants_commands is not None
-            assert server.container_lifecycle is not None
-            assert server.workflow_tools is not None
+    def test_get_session_raises_validation_error_for_empty_string(self) -> None:
+        """Test that _get_session raises ValidationError for empty workspace."""
+        server = PantsDevContainerServer()
 
-    def test_server_initialization_without_config(self) -> None:
-        """Test server initializes with default config when none provided."""
-        with patch("src.server.ContainerManager"), \
-             patch("src.server.PantsCommands"), \
-             patch("src.server.ContainerLifecycle"), \
-             patch("src.server.WorkflowTools"):
+        with pytest.raises(ValidationError, match="workspace_folder.*required"):
+            server._get_session("")
 
-            server = PantsDevContainerServer()
+    def test_get_session_raises_validation_error_for_nonexistent_path(self) -> None:
+        """Test that _get_session raises ValidationError for non-existent path."""
+        server = PantsDevContainerServer()
 
-            assert server.config is not None
-            assert server.config.name == "pants-devcontainer-power"
-            assert server.server is not None
+        with pytest.raises(ValidationError, match="does not exist"):
+            server._get_session("/nonexistent/path/that/does/not/exist")
 
-    def test_server_initialization_validates_prerequisites(self) -> None:
-        """Test server gracefully degrades when prerequisites are missing."""
-        config = PowerConfig(repository_root=Path("/some/workspace"))
-
-        # Mock ContainerManager to raise ContainerError
-        with patch(
-            "src.server.ContainerManager",
-            side_effect=ContainerError("DevContainer CLI not found"),
-        ):
-            server = PantsDevContainerServer(config)
-
-            assert server._devcontainer_available is False
-            assert "DevContainer CLI not found" in server._unavailable_reason
-
-    def test_server_creates_mcp_server_with_correct_name(self, mock_config: PowerConfig) -> None:
-        """Test server creates MCP Server with config name."""
-        with patch("src.server.ContainerManager"), \
-             patch("src.server.PantsCommands"), \
-             patch("src.server.ContainerLifecycle"), \
-             patch("src.server.WorkflowTools"), \
-             patch("src.server.Server") as mock_server_class:
-
-            PantsDevContainerServer(mock_config)
-
-            mock_server_class.assert_called_once_with(mock_config.name)
-
-    def test_format_command_result_success(
-        self, server: PantsDevContainerServer
+    def test_get_session_raises_container_error_for_missing_devcontainer(
+        self, tmp_path: Path
     ) -> None:
+        """Test that _get_session raises ContainerError when .devcontainer/ missing."""
+        server = PantsDevContainerServer()
+
+        with patch("src.container_manager.shutil.which", return_value="/usr/bin/devcontainer"):
+            with pytest.raises(ContainerError, match="DevContainer configuration not found"):
+                server._get_session(str(tmp_path))
+
+
+class TestServerFormatting:
+    """Test suite for server result formatting methods."""
+
+    @pytest.fixture
+    def server(self) -> PantsDevContainerServer:
+        """Create a server instance for testing."""
+        return PantsDevContainerServer()
+
+    def test_format_command_result_success(self, server: PantsDevContainerServer) -> None:
         """Test _format_command_result formats successful results."""
         result = CommandResult(
             exit_code=0,
@@ -167,16 +170,14 @@ class TestPantsDevContainerServer:
             success=True,
         )
 
-        formatted = server._format_command_result(result)  # noqa: SLF001
+        formatted = server._format_command_result(result)
 
         assert len(formatted) == 1
         assert formatted[0].type == "text"
         assert "Success output" in formatted[0].text
         assert "pants test ::" in formatted[0].text
 
-    def test_format_command_result_failure(
-        self, server: PantsDevContainerServer
-    ) -> None:
+    def test_format_command_result_failure(self, server: PantsDevContainerServer) -> None:
         """Test _format_command_result formats failed results."""
         result = CommandResult(
             exit_code=1,
@@ -186,7 +187,7 @@ class TestPantsDevContainerServer:
             success=False,
         )
 
-        formatted = server._format_command_result(result)  # noqa: SLF001
+        formatted = server._format_command_result(result)
 
         assert len(formatted) == 1
         assert formatted[0].type == "text"
@@ -195,9 +196,7 @@ class TestPantsDevContainerServer:
             or "Exit code: 1" in formatted[0].text
         )
 
-    def test_format_workflow_result_success(
-        self, server: PantsDevContainerServer
-    ) -> None:
+    def test_format_workflow_result_success(self, server: PantsDevContainerServer) -> None:
         """Test _format_workflow_result formats successful workflow."""
         result = WorkflowResult(
             steps_completed=["fix", "lint", "check"],
@@ -210,16 +209,14 @@ class TestPantsDevContainerServer:
             overall_success=True,
         )
 
-        formatted = server._format_workflow_result(result)  # noqa: SLF001
+        formatted = server._format_workflow_result(result)
 
         assert len(formatted) == 1
         assert formatted[0].type == "text"
         assert "Workflow completed successfully" in formatted[0].text
         assert "fix, lint, check" in formatted[0].text
 
-    def test_format_workflow_result_failure(
-        self, server: PantsDevContainerServer
-    ) -> None:
+    def test_format_workflow_result_failure(self, server: PantsDevContainerServer) -> None:
         """Test _format_workflow_result formats failed workflow."""
         result = WorkflowResult(
             steps_completed=["fix"],
@@ -231,7 +228,7 @@ class TestPantsDevContainerServer:
             overall_success=False,
         )
 
-        formatted = server._format_workflow_result(result)  # noqa: SLF001
+        formatted = server._format_workflow_result(result)
 
         assert len(formatted) == 1
         assert formatted[0].type == "text"
@@ -247,14 +244,12 @@ class TestPantsDevContainerServer:
             failed_step=None,
             results=[
                 CommandResult(0, "Fixed 3 files", "", "pants fix ::", True),
-                CommandResult(
-                    0, "All checks passed", "", "pants lint ::", True
-                ),
+                CommandResult(0, "All checks passed", "", "pants lint ::", True),
             ],
             overall_success=True,
         )
 
-        formatted = server._format_workflow_result(result)  # noqa: SLF001
+        formatted = server._format_workflow_result(result)
 
         text = formatted[0].text
         assert "--- Step Details ---" in text
@@ -263,296 +258,3 @@ class TestPantsDevContainerServer:
         assert "Command: pants fix ::" in text
         assert "Command: pants lint ::" in text
         assert "Exit code: 0" in text
-
-
-class TestServerToolRouting:
-    """Test suite for server tool routing and invocation."""
-
-    @pytest.fixture
-    def server(self) -> PantsDevContainerServer:
-        """Create a server with mocked components."""
-        with patch("src.server.ContainerManager"), \
-             patch("src.server.PantsCommands") as mock_pants, \
-             patch("src.server.ContainerLifecycle") as mock_lifecycle, \
-             patch("src.server.WorkflowTools") as mock_workflow:
-
-            server = PantsDevContainerServer()
-            server.pants_commands = mock_pants.return_value
-            server.container_lifecycle = mock_lifecycle.return_value
-            server.workflow_tools = mock_workflow.return_value
-
-            return server
-
-    def test_pants_fix_routes_to_pants_commands(self, server: PantsDevContainerServer) -> None:
-        """Test that pants_fix tool routes to PantsCommands.pants_fix."""
-        mock_result = CommandResult(0, "Fixed", "", "pants fix ::", True)
-        server.pants_commands.pants_fix = Mock(return_value=mock_result)
-
-        result = server.pants_commands.pants_fix(None)
-
-        server.pants_commands.pants_fix.assert_called_once_with(None)
-        assert result.success
-
-    def test_pants_lint_routes_to_pants_commands(self, server: PantsDevContainerServer) -> None:
-        """Test that pants_lint tool routes to PantsCommands.pants_lint."""
-        mock_result = CommandResult(0, "Linted", "", "pants lint ::", True)
-        server.pants_commands.pants_lint = Mock(return_value=mock_result)
-
-        result = server.pants_commands.pants_lint("src::")
-
-        server.pants_commands.pants_lint.assert_called_once_with("src::")
-        assert result.success
-
-    def test_pants_check_routes_to_pants_commands(self, server: PantsDevContainerServer) -> None:
-        """Test that pants_check tool routes to PantsCommands.pants_check."""
-        mock_result = CommandResult(0, "Checked", "", "pants check ::", True)
-        server.pants_commands.pants_check = Mock(return_value=mock_result)
-
-        result = server.pants_commands.pants_check(None)
-
-        server.pants_commands.pants_check.assert_called_once_with(None)
-        assert result.success
-
-    def test_pants_test_routes_to_pants_commands(self, server: PantsDevContainerServer) -> None:
-        """Test that pants_test tool routes to PantsCommands.pants_test."""
-        mock_result = CommandResult(0, "Tested", "", "pants test ::", True)
-        server.pants_commands.pants_test = Mock(return_value=mock_result)
-
-        result = server.pants_commands.pants_test("tests::")
-
-        server.pants_commands.pants_test.assert_called_once_with("tests::")
-        assert result.success
-
-    def test_pants_package_routes_to_pants_commands(
-        self, server: PantsDevContainerServer
-    ) -> None:
-        """Test that pants_package tool routes to PantsCommands.pants_package."""
-        mock_result = CommandResult(0, "Packaged", "", "pants package ::", True)
-        server.pants_commands.pants_package = Mock(return_value=mock_result)
-
-        result = server.pants_commands.pants_package(None)
-
-        server.pants_commands.pants_package.assert_called_once_with(None)
-        assert result.success
-
-    def test_pants_clear_cache_routes_to_pants_commands(
-        self, server: PantsDevContainerServer
-    ) -> None:
-        """Test that pants_clear_cache tool routes to PantsCommands.pants_clear_cache."""
-        mock_result = CommandResult(0, "Cache cleared", "", "rm -rf .pants.d/pids", True)
-        server.pants_commands.pants_clear_cache = Mock(return_value=mock_result)
-
-        result = server.pants_commands.pants_clear_cache()
-
-        server.pants_commands.pants_clear_cache.assert_called_once()
-        assert result.success
-
-    def test_container_start_routes_to_container_lifecycle(
-        self, server: PantsDevContainerServer
-    ) -> None:
-        """Test that container_start tool routes to ContainerLifecycle.container_start."""
-        mock_result = CommandResult(0, "Started", "", "devcontainer up", True)
-        server.container_lifecycle.container_start = Mock(return_value=mock_result)
-
-        result = server.container_lifecycle.container_start()
-
-        server.container_lifecycle.container_start.assert_called_once()
-        assert result.success
-
-    def test_container_stop_routes_to_container_lifecycle(
-        self, server: PantsDevContainerServer
-    ) -> None:
-        """Test that container_stop tool routes to ContainerLifecycle.container_stop."""
-        mock_result = CommandResult(0, "Stopped", "", "docker rm -f", True)
-        server.container_lifecycle.container_stop = Mock(return_value=mock_result)
-
-        result = server.container_lifecycle.container_stop()
-
-        server.container_lifecycle.container_stop.assert_called_once()
-        assert result.success
-
-    def test_container_rebuild_routes_to_container_lifecycle(
-        self, server: PantsDevContainerServer
-    ) -> None:
-        """Test that container_rebuild tool routes to ContainerLifecycle.container_rebuild."""
-        mock_result = CommandResult(0, "Rebuilt", "", "devcontainer build", True)
-        server.container_lifecycle.container_rebuild = Mock(return_value=mock_result)
-
-        result = server.container_lifecycle.container_rebuild()
-
-        server.container_lifecycle.container_rebuild.assert_called_once()
-        assert result.success
-
-    def test_container_exec_routes_to_container_lifecycle(
-        self, server: PantsDevContainerServer
-    ) -> None:
-        """Test that container_exec tool routes to ContainerLifecycle.container_exec."""
-        mock_result = CommandResult(0, "Executed", "", "ls -la", True)
-        server.container_lifecycle.container_exec = Mock(return_value=mock_result)
-
-        result = server.container_lifecycle.container_exec("ls -la")
-
-        server.container_lifecycle.container_exec.assert_called_once_with("ls -la")
-        assert result.success
-
-    def test_container_shell_routes_to_container_lifecycle(
-        self, server: PantsDevContainerServer
-    ) -> None:
-        """Test that container_shell tool routes to ContainerLifecycle.container_shell."""
-        mock_result = CommandResult(0, "Shell instructions", "", "", True)
-        server.container_lifecycle.container_shell = Mock(return_value=mock_result)
-
-        result = server.container_lifecycle.container_shell()
-
-        server.container_lifecycle.container_shell.assert_called_once()
-        assert result.success
-
-    def test_full_quality_check_routes_to_workflow_tools(
-        self, server: PantsDevContainerServer
-    ) -> None:
-        """Test that full_quality_check tool routes to WorkflowTools.full_quality_check."""
-        mock_result = WorkflowResult(
-            steps_completed=["fix", "lint", "check", "test"],
-            failed_step=None,
-            results=[],
-            overall_success=True,
-        )
-        server.workflow_tools.full_quality_check = Mock(return_value=mock_result)
-
-        result = server.workflow_tools.full_quality_check(None)
-
-        server.workflow_tools.full_quality_check.assert_called_once_with(None)
-        assert result.overall_success
-
-    def test_pants_workflow_routes_to_workflow_tools(
-        self, server: PantsDevContainerServer
-    ) -> None:
-        """Test that pants_workflow tool routes to WorkflowTools.pants_workflow."""
-        mock_result = WorkflowResult(
-            steps_completed=["fix", "lint"],
-            failed_step=None,
-            results=[],
-            overall_success=True,
-        )
-        server.workflow_tools.pants_workflow = Mock(return_value=mock_result)
-
-        result = server.workflow_tools.pants_workflow("fix-lint", "src::")
-
-        server.workflow_tools.pants_workflow.assert_called_once_with("fix-lint", "src::")
-        assert result.overall_success
-
-
-class TestServerErrorHandling:
-    """Test suite for server error handling."""
-
-    @pytest.fixture
-    def server(self) -> PantsDevContainerServer:
-        """Create a server with mocked components."""
-        with patch("src.server.ContainerManager"), \
-             patch("src.server.PantsCommands") as mock_pants, \
-             patch("src.server.ContainerLifecycle") as mock_lifecycle, \
-             patch("src.server.WorkflowTools") as mock_workflow:
-
-            server = PantsDevContainerServer()
-            server.pants_commands = mock_pants.return_value
-            server.container_lifecycle = mock_lifecycle.return_value
-            server.workflow_tools = mock_workflow.return_value
-
-            return server
-
-    def test_validation_error_handling(self, server: PantsDevContainerServer) -> None:
-        """Test that ValidationError is properly handled."""
-        server.container_lifecycle.container_exec = Mock(
-            side_effect=ValidationError("Invalid command parameter")
-        )
-
-        with pytest.raises(ValidationError, match="Invalid command parameter"):
-            server.container_lifecycle.container_exec("")
-
-    def test_container_error_handling(self, server: PantsDevContainerServer) -> None:
-        """Test that ContainerError is properly handled."""
-        server.container_lifecycle.container_start = Mock(
-            side_effect=ContainerError("Docker daemon not running")
-        )
-
-        with pytest.raises(ContainerError, match="Docker daemon not running"):
-            server.container_lifecycle.container_start()
-
-    def test_command_execution_error_handling(self, server: PantsDevContainerServer) -> None:
-        """Test that CommandExecutionError is properly handled."""
-        server.pants_commands.pants_test = Mock(
-            side_effect=CommandExecutionError("Command execution failed")
-        )
-
-        with pytest.raises(CommandExecutionError, match="Command execution failed"):
-            server.pants_commands.pants_test()
-
-    def test_power_error_handling(
-        self, server: PantsDevContainerServer
-    ) -> None:
-        """Test that PowerError is properly handled."""
-        server.pants_commands.pants_fix = Mock(
-            side_effect=PowerError("Power initialization failed")
-        )
-
-        with pytest.raises(PowerError, match="Power initialization failed"):
-            server.pants_commands.pants_fix()
-
-    def test_generic_exception_handling(self, server: PantsDevContainerServer) -> None:
-        """Test that generic exceptions are properly handled."""
-        server.pants_commands.pants_lint = Mock(side_effect=RuntimeError("Unexpected error"))
-
-        with pytest.raises(RuntimeError, match="Unexpected error"):
-            server.pants_commands.pants_lint()
-
-
-class TestServerComponentIntegration:
-    """Test suite for server component integration."""
-
-    def test_server_initializes_all_components(self) -> None:
-        """Test that server initializes all required components."""
-        config = PowerConfig(repository_root=Path("/some/workspace"))
-        with patch("src.server.ContainerManager") as mock_cm, \
-             patch("src.server.PantsCommands") as mock_pc, \
-             patch("src.server.ContainerLifecycle") as mock_cl, \
-             patch("src.server.WorkflowTools") as mock_wt:
-
-            server = PantsDevContainerServer(config)
-
-            # Verify all components were instantiated
-            mock_cm.assert_called()
-            mock_pc.assert_called_once()
-            mock_cl.assert_called_once()
-            mock_wt.assert_called_once()
-
-            # Verify server has references to all components
-            assert server.pants_commands is not None
-            assert server.container_lifecycle is not None
-            assert server.workflow_tools is not None
-
-    def test_server_registers_all_tool_categories(self) -> None:
-        """Test that server calls all registration methods."""
-        config = PowerConfig(repository_root=Path("/some/workspace"))
-        with patch("src.server.ContainerManager"), \
-             patch("src.server.PantsCommands"), \
-             patch("src.server.ContainerLifecycle"), \
-             patch("src.server.WorkflowTools"):
-
-            server = PantsDevContainerServer(config)
-
-            # Verify _register_tools was called (indirectly by checking server state)
-            assert server.server is not None
-
-    def test_empty_registration_methods_do_not_raise_errors(self) -> None:
-        """Test that empty registration methods execute without errors."""
-        with patch("src.server.ContainerManager"), \
-             patch("src.server.PantsCommands"), \
-             patch("src.server.ContainerLifecycle"), \
-             patch("src.server.WorkflowTools"):
-
-            server = PantsDevContainerServer()
-
-            # These methods are no-ops but should not raise errors
-            server._register_container_tools()  # noqa: SLF001
-            server._register_workflow_tools()  # noqa: SLF001
-            server._register_utility_tools()  # noqa: SLF001

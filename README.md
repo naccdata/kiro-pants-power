@@ -6,6 +6,8 @@ A Kiro Power that provides MCP (Model Context Protocol) tools for managing devel
 
 The Pants DevContainer Power provides MCP tools that handle the complexity of running Pants commands inside devcontainers. Instead of manually managing container lifecycle or remembering wrapper scripts, you can invoke Pants commands directly through the AI assistant, and the power handles all the container orchestration automatically.
 
+Every tool requires a `workspace_folder` parameter — the absolute path to the repository root containing `.devcontainer/`. The agent fills this in automatically based on the workspace.
+
 ### Key Features
 
 - **Zero-friction execution**: Invoke Pants commands directly; the power handles container management
@@ -372,7 +374,7 @@ This power wraps the `@devcontainers/cli` npm package to provide seamless integr
 - `devcontainer build` - Rebuild container image
 
 The power sets these environment variables for all devcontainer operations:
-- `WORKSPACE_FOLDER`: Current repository root
+- `WORKSPACE_FOLDER`: Set to the `workspace_folder` provided in each tool call
 - `DOCKER_CLI_HINTS`: Set to "false" to suppress Docker hints
 
 You can still use the devcontainer CLI directly for operations not covered by this power, such as:

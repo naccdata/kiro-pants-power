@@ -10,350 +10,191 @@ from unittest.mock import Mock, patch
 import pytest
 
 from src.models import CommandResult, ContainerError, ValidationError, WorkflowResult
-from src.server import PantsDevContainerServer, PowerConfig
+from src.server import PantsDevContainerServer, WorkspaceSession
 
 
 class TestMCPServerInitialization:
-    """Test MCP server initialization and validation."""
+    """Test MCP server initialization."""
 
-    def test_server_initialization_with_valid_config(self) -> None:
-        """Test that server initializes successfully with valid configuration."""
-        config = PowerConfig(repository_root=Path.cwd())
+    def test_server_initializes_without_workspace(self) -> None:
+        """Test that server initializes successfully with no workspace needed."""
+        server = PantsDevContainerServer()
+        assert server.server is not None
+        assert server._sessions == {}
 
-        # Mock all component classes to avoid validation
-        with patch("src.server.ContainerManager"), \
-             patch("src.server.PantsCommands"), \
-             patch("src.server.ContainerLifecycle"), \
-             patch("src.server.WorkflowTools"):
-            server = PantsDevContainerServer(config)
+    def test_server_session_created_on_first_call(self, tmp_path: Path) -> None:
+        """Test that session is lazily created on first get_session call."""
+        (tmp_path / ".devcontainer").mkdir()
+        server = PantsDevContainerServer()
 
-            assert server.config == config
-            assert server.server is not None
-            assert server.pants_commands is not None
-            assert server.container_lifecycle is not None
-            assert server.workflow_tools is not None
+        with patch("src.container_manager.shutil.which", return_value="/usr/bin/devcontainer"):
+            session = server._get_session(str(tmp_path))
 
-    def test_server_initialization_validates_prerequisites(self) -> None:
-        """Test that server gracefully degrades when devcontainer CLI is missing."""
-        config = PowerConfig(repository_root=Path.cwd())
+        assert session is not None
+        assert session.workspace_folder == tmp_path
 
-        # Mock ContainerManager to raise ContainerError
-        with patch(
-            "src.server.ContainerManager",
-            side_effect=ContainerError("DevContainer CLI not found")
-        ):
-            server = PantsDevContainerServer(config)
+    def test_server_returns_error_for_missing_workspace_folder(self) -> None:
+        """Test that missing workspace_folder gives a clear error."""
+        server = PantsDevContainerServer()
 
-            assert server._devcontainer_available is False
-            assert "DevContainer CLI not found" in server._unavailable_reason
+        with pytest.raises(ValidationError, match="workspace_folder.*required"):
+            server._get_session(None)
 
-    def test_server_provides_helpful_error_for_missing_cli(self) -> None:
-        """Test helpful message stored when CLI is missing."""
-        config = PowerConfig(repository_root=Path.cwd())
+    def test_server_returns_error_for_missing_devcontainer_dir(
+        self, tmp_path: Path
+    ) -> None:
+        """Test clear error when .devcontainer/ directory is missing."""
+        server = PantsDevContainerServer()
 
-        error_message = (
-            "DevContainer CLI not found\n\n"
-            "The devcontainer CLI is required to use this power.\n\n"
-            "Install it with: npm install -g @devcontainers/cli"
-        )
+        with patch("src.container_manager.shutil.which", return_value="/usr/bin/devcontainer"):
+            with pytest.raises(ContainerError, match="DevContainer configuration not found"):
+                server._get_session(str(tmp_path))
 
-        with patch(
-            "src.server.ContainerManager",
-            side_effect=ContainerError(error_message)
-        ):
-            server = PantsDevContainerServer(config)
+    def test_server_returns_error_for_missing_cli(self, tmp_path: Path) -> None:
+        """Test clear error when devcontainer CLI is not installed."""
+        (tmp_path / ".devcontainer").mkdir()
+        server = PantsDevContainerServer()
 
-            assert server._devcontainer_available is False
-            assert "npm install -g @devcontainers/cli" in server._unavailable_reason
-
-    def test_server_provides_helpful_error_for_missing_devcontainer_dir(self) -> None:
-        """Test that server stores helpful message when .devcontainer/ is missing."""
-        config = PowerConfig(repository_root=Path.cwd())
-
-        error_message = (
-            "DevContainer configuration not found\n\n"
-            "This power requires a .devcontainer/ directory with devcontainer.json."
-        )
-
-        with patch(
-            "src.server.ContainerManager",
-            side_effect=ContainerError(error_message)
-        ):
-            server = PantsDevContainerServer(config)
-
-            assert server._devcontainer_available is False
-            assert ".devcontainer/" in server._unavailable_reason
+        with patch("src.container_manager.shutil.which", return_value=None):
+            with pytest.raises(ContainerError, match="DevContainer CLI not found"):
+                server._get_session(str(tmp_path))
 
 
 class TestMCPToolRegistration:
     """Test MCP tool registration."""
 
-    @pytest.fixture
-    def server(self) -> PantsDevContainerServer:
-        """Create a server instance for testing."""
-        config = PowerConfig(repository_root=Path.cwd())
-
-        # Mock all component classes to avoid validation
-        with patch("src.server.ContainerManager"), \
-             patch("src.server.PantsCommands"), \
-             patch("src.server.ContainerLifecycle"), \
-             patch("src.server.WorkflowTools"):
-            return PantsDevContainerServer(config)
-
-    @pytest.mark.asyncio
-    async def test_server_registers_all_pants_command_tools(
-        self, server: PantsDevContainerServer
-    ) -> None:
-        """Test that server registers all 5 Pants command tools."""
-        # We can't directly access internal handlers, so we test that
-        # the server was initialized successfully and has the expected
-        # structure
-        assert server.server is not None
-        assert server.pants_commands is not None
-
-    @pytest.mark.asyncio
-    async def test_server_registers_all_container_lifecycle_tools(
-        self, server: PantsDevContainerServer
-    ) -> None:
-        """Test that server registers all 5 container lifecycle tools."""
-        assert server.server is not None
-        assert server.container_lifecycle is not None
-
-    @pytest.mark.asyncio
-    async def test_server_registers_all_workflow_tools(
-        self, server: PantsDevContainerServer
-    ) -> None:
-        """Test that server registers all 2 workflow tools."""
-        assert server.server is not None
-        assert server.workflow_tools is not None
-
-    @pytest.mark.asyncio
-    async def test_server_registers_utility_tools(self, server: PantsDevContainerServer) -> None:
-        """Test that server registers utility tool."""
-        assert server.server is not None
-        assert server.pants_commands is not None
-
-    @pytest.mark.asyncio
-    async def test_server_registers_all_tools(self, server: PantsDevContainerServer) -> None:
-        """Test that server registers all expected tools."""
-        # Verify server initialized successfully with all components
-        assert server.server is not None
-        assert server.pants_commands is not None
-        assert server.container_lifecycle is not None
-        assert server.workflow_tools is not None
-
-    @pytest.mark.asyncio
-    async def test_tools_include_descriptions(self, server: PantsDevContainerServer) -> None:
-        """Test that each tool includes a description."""
-        # Verify server structure is correct
-        assert server.server is not None
-
-    @pytest.mark.asyncio
-    async def test_tools_include_parameter_schemas(self, server: PantsDevContainerServer) -> None:
-        """Test that each tool includes parameter schema."""
-        # Verify server structure is correct
+    def test_server_registers_tools(self) -> None:
+        """Test that server registers tools on initialization."""
+        server = PantsDevContainerServer()
+        # Server initializes with registered tools — verified by having a server instance
         assert server.server is not None
 
 
 class TestMCPToolInvocation:
-    """Test MCP tool invocation handling."""
+    """Test MCP tool invocation handling via WorkspaceSession."""
 
     @pytest.fixture
-    def server(self) -> PantsDevContainerServer:
-        """Create a server instance for testing."""
-        config = PowerConfig(repository_root=Path.cwd())
+    def session(self, tmp_path: Path) -> WorkspaceSession:
+        """Create a WorkspaceSession with mocked components."""
+        (tmp_path / ".devcontainer").mkdir()
 
-        # Mock all component classes to avoid validation
-        with patch("src.server.ContainerManager"), \
-             patch("src.server.PantsCommands") as mock_pants, \
-             patch("src.server.ContainerLifecycle") as mock_lifecycle, \
-             patch("src.server.WorkflowTools") as mock_workflow:
+        with patch("src.container_manager.shutil.which", return_value="/usr/bin/devcontainer"):
+            session = WorkspaceSession(workspace_folder=tmp_path)
 
-            server = PantsDevContainerServer(config)
+        # Replace components with controllable mocks
+        session.pants_commands = Mock()
+        session.container_lifecycle = Mock()
+        session.workflow_tools = Mock()
+        session.tool_executor = Mock()
 
-            # Replace mocked components with real Mock objects we can control
-            server.pants_commands = mock_pants.return_value
-            server.container_lifecycle = mock_lifecycle.return_value
-            server.workflow_tools = mock_workflow.return_value
+        return session
 
-            return server
-
-    @pytest.mark.asyncio
-    async def test_pants_fix_invocation(self, server: PantsDevContainerServer) -> None:
-        """Test invoking pants_fix tool."""
-        # Mock the pants_commands.pants_fix method
+    def test_pants_fix_invocation(self, session: WorkspaceSession) -> None:
+        """Test invoking pants_fix via tool executor."""
         mock_result = CommandResult(
             exit_code=0,
             stdout="Fixed 3 files",
             stderr="",
             command="pants fix ::",
-            success=True
+            success=True,
         )
-        server.pants_commands.pants_fix = Mock(return_value=mock_result)
+        session.tool_executor.execute_pants_fix = Mock(return_value=mock_result)
 
-        # Test that the method can be called
-        result = server.pants_commands.pants_fix(None)
-
+        result = session.tool_executor.execute_pants_fix({})
         assert result.success
         assert "Fixed 3 files" in result.stdout
 
-    @pytest.mark.asyncio
-    async def test_pants_test_with_target(self, server: PantsDevContainerServer) -> None:
+    def test_pants_test_with_target(self, session: WorkspaceSession) -> None:
         """Test invoking pants_test with target parameter."""
         mock_result = CommandResult(
             exit_code=0,
             stdout="All tests passed",
             stderr="",
             command="pants test src/python::",
-            success=True
+            success=True,
         )
-        server.pants_commands.pants_test = Mock(return_value=mock_result)
+        session.tool_executor.execute_pants_test = Mock(return_value=mock_result)
 
-        # Test that the method can be called with target
-        result = server.pants_commands.pants_test("src/python::")
-
+        result = session.tool_executor.execute_pants_test({"target": "src/python::"})
         assert result.success
         assert "All tests passed" in result.stdout
 
-    @pytest.mark.asyncio
-    async def test_container_exec_requires_command_parameter(
-        self, server: PantsDevContainerServer
-    ) -> None:
-        """Test that container_exec validates command parameter."""
-        # Mock to raise ValidationError for empty command
-        server.container_lifecycle.container_exec = Mock(
-            side_effect=ValidationError("Invalid command parameter")
+    def test_container_exec_invocation(self, session: WorkspaceSession) -> None:
+        """Test invoking container_exec."""
+        mock_result = CommandResult(
+            exit_code=0,
+            stdout="file1.py\nfile2.py",
+            stderr="",
+            command="ls",
+            success=True,
         )
+        session.container_lifecycle.container_exec = Mock(return_value=mock_result)
 
-        # Test that validation error is raised
-        with pytest.raises(ValidationError):
-            server.container_lifecycle.container_exec("")
+        result = session.container_lifecycle.container_exec("ls")
+        assert result.success
 
-    @pytest.mark.asyncio
-    async def test_pants_workflow_requires_workflow_parameter(
-        self, server: PantsDevContainerServer
-    ) -> None:
-        """Test that pants_workflow validates workflow parameter."""
-        # Mock to raise ValueError for invalid workflow
-        server.workflow_tools.pants_workflow = Mock(
-            side_effect=ValueError("Unknown workflow")
-        )
-
-        # Test that validation error is raised
-        with pytest.raises(ValueError):
-            server.workflow_tools.pants_workflow("invalid-workflow")
-
-    @pytest.mark.asyncio
-    async def test_full_quality_check_invocation(self, server: PantsDevContainerServer) -> None:
+    def test_full_quality_check_invocation(self, session: WorkspaceSession) -> None:
         """Test invoking full_quality_check workflow."""
         mock_result = WorkflowResult(
             steps_completed=["fix", "lint", "check", "test"],
             failed_step=None,
             results=[],
-            overall_success=True
+            overall_success=True,
         )
-        server.workflow_tools.full_quality_check = Mock(return_value=mock_result)
+        session.workflow_tools.full_quality_check = Mock(return_value=mock_result)
 
-        # Test that the method can be called
-        result = server.workflow_tools.full_quality_check()
-
+        result = session.workflow_tools.full_quality_check()
         assert result.overall_success
         assert len(result.steps_completed) == 4
 
-    @pytest.mark.asyncio
-    async def test_unknown_tool_returns_error(self, server: PantsDevContainerServer) -> None:
-        """Test that invoking unknown tool returns error."""
-        # Verify server structure is correct
-        assert server.server is not None
-
 
 class TestMCPErrorHandling:
-    """Test MCP server error handling and response formatting."""
+    """Test MCP server error handling."""
 
     @pytest.fixture
-    def server(self) -> PantsDevContainerServer:
-        """Create a server instance for testing."""
-        config = PowerConfig(repository_root=Path.cwd())
+    def session(self, tmp_path: Path) -> WorkspaceSession:
+        """Create a WorkspaceSession with mocked components."""
+        (tmp_path / ".devcontainer").mkdir()
 
-        # Mock all component classes to avoid validation
-        with patch("src.server.ContainerManager"), \
-             patch("src.server.PantsCommands") as mock_pants, \
-             patch("src.server.ContainerLifecycle") as mock_lifecycle, \
-             patch("src.server.WorkflowTools") as mock_workflow:
+        with patch("src.container_manager.shutil.which", return_value="/usr/bin/devcontainer"):
+            session = WorkspaceSession(workspace_folder=tmp_path)
 
-            server = PantsDevContainerServer(config)
+        session.pants_commands = Mock()
+        session.container_lifecycle = Mock()
+        session.workflow_tools = Mock()
+        session.tool_executor = Mock()
 
-            # Replace mocked components with real Mock objects we can control
-            server.pants_commands = mock_pants.return_value
-            server.container_lifecycle = mock_lifecycle.return_value
-            server.workflow_tools = mock_workflow.return_value
+        return session
 
-            return server
-
-    @pytest.mark.asyncio
-    async def test_container_error_formatting(self, server: PantsDevContainerServer) -> None:
-        """Test that ContainerError is properly formatted."""
-        # Mock to raise ContainerError
-        server.container_lifecycle.container_start = Mock(
+    def test_container_error_raised(self, session: WorkspaceSession) -> None:
+        """Test that ContainerError is properly propagated."""
+        session.container_lifecycle.container_start = Mock(
             side_effect=ContainerError("Docker daemon not running")
         )
 
-        # Test that error is raised
-        with pytest.raises(ContainerError) as exc_info:
-            server.container_lifecycle.container_start()
+        with pytest.raises(ContainerError, match="Docker daemon not running"):
+            session.container_lifecycle.container_start()
 
-        assert "Docker daemon not running" in str(exc_info.value)
-
-    @pytest.mark.asyncio
-    async def test_validation_error_formatting(self, server: PantsDevContainerServer) -> None:
-        """Test that ValidationError is properly formatted."""
-        # Mock to raise ValidationError
-        server.container_lifecycle.container_exec = Mock(
+    def test_validation_error_raised(self, session: WorkspaceSession) -> None:
+        """Test that ValidationError is properly propagated."""
+        session.container_lifecycle.container_exec = Mock(
             side_effect=ValidationError("Invalid command parameter")
         )
 
-        # Test that error is raised
-        with pytest.raises(ValidationError) as exc_info:
-            server.container_lifecycle.container_exec("ls")
+        with pytest.raises(ValidationError, match="Invalid command parameter"):
+            session.container_lifecycle.container_exec("")
 
-        assert "Invalid command parameter" in str(exc_info.value)
-
-    @pytest.mark.asyncio
-    async def test_command_failure_formatting(self, server: PantsDevContainerServer) -> None:
-        """Test that failed commands are properly formatted."""
-        # Mock failed command
+    def test_command_failure_result(self, session: WorkspaceSession) -> None:
+        """Test that failed commands return proper result."""
         mock_result = CommandResult(
             exit_code=1,
             stdout="",
             stderr="Error: Test failed",
             command="pants test ::",
-            success=False
+            success=False,
         )
-        server.pants_commands.pants_test = Mock(return_value=mock_result)
+        session.tool_executor.execute_pants_test = Mock(return_value=mock_result)
 
-        # Test that the method returns the failed result
-        result = server.pants_commands.pants_test()
-
+        result = session.tool_executor.execute_pants_test({})
         assert not result.success
         assert result.exit_code == 1
-        assert "Test failed" in result.stderr
-
-    @pytest.mark.asyncio
-    async def test_workflow_failure_formatting(self, server: PantsDevContainerServer) -> None:
-        """Test that failed workflows are properly formatted."""
-        # Mock failed workflow
-        mock_result = WorkflowResult(
-            steps_completed=["fix", "lint"],
-            failed_step="check",
-            results=[],
-            overall_success=False
-        )
-        server.workflow_tools.full_quality_check = Mock(return_value=mock_result)
-
-        # Test that the method returns the failed result
-        result = server.workflow_tools.full_quality_check()
-
-        assert not result.overall_success
-        assert result.failed_step == "check"
-        assert "fix" in result.steps_completed
-        assert "lint" in result.steps_completed
