@@ -228,6 +228,14 @@ class PantsCommands:
             logger.error(f"Failed to format parsed output: {e}")
             formatted_summary = f"Formatting error: {e}\n\nRaw output:\n{result.output}"
 
+        # If parser produced no structured output but command failed,
+        # include raw output so the caller gets useful information
+        if not formatted_summary and not result.success:
+            formatted_summary = (
+                f"Type Checking Failed (no structured detail captured)\n\n"
+                f"Raw output:\n{result.output}"
+            )
+
         # Return enhanced result
         return EnhancedCommandResult(
             exit_code=result.exit_code,

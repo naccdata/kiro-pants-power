@@ -29,7 +29,13 @@ class TestPowerConfig:
             "MCP tools for Pants build system with devcontainer integration"
         )
         assert config.python_version == "3.12+"
-        assert config.repository_root == Path.cwd()
+        # repository_root is None when cwd doesn't have .devcontainer/
+        # (defers to MCP roots resolution)
+        cwd = Path.cwd()
+        if (cwd / ".devcontainer").exists():
+            assert config.repository_root == cwd
+        else:
+            assert config.repository_root is None
 
     def test_power_config_initialization_with_custom_values(self) -> None:
         """Test PowerConfig initializes with custom values."""
@@ -125,7 +131,7 @@ class TestPantsDevContainerServer:
 
     def test_server_initialization_validates_prerequisites(self) -> None:
         """Test server gracefully degrades when prerequisites are missing."""
-        config = PowerConfig()
+        config = PowerConfig(repository_root=Path("/some/workspace"))
 
         # Mock ContainerManager to raise ContainerError
         with patch(
@@ -505,12 +511,13 @@ class TestServerComponentIntegration:
 
     def test_server_initializes_all_components(self) -> None:
         """Test that server initializes all required components."""
+        config = PowerConfig(repository_root=Path("/some/workspace"))
         with patch("src.server.ContainerManager") as mock_cm, \
              patch("src.server.PantsCommands") as mock_pc, \
              patch("src.server.ContainerLifecycle") as mock_cl, \
              patch("src.server.WorkflowTools") as mock_wt:
 
-            server = PantsDevContainerServer()
+            server = PantsDevContainerServer(config)
 
             # Verify all components were instantiated
             mock_cm.assert_called()
@@ -525,12 +532,13 @@ class TestServerComponentIntegration:
 
     def test_server_registers_all_tool_categories(self) -> None:
         """Test that server calls all registration methods."""
+        config = PowerConfig(repository_root=Path("/some/workspace"))
         with patch("src.server.ContainerManager"), \
              patch("src.server.PantsCommands"), \
              patch("src.server.ContainerLifecycle"), \
              patch("src.server.WorkflowTools"):
 
-            server = PantsDevContainerServer()
+            server = PantsDevContainerServer(config)
 
             # Verify _register_tools was called (indirectly by checking server state)
             assert server.server is not None

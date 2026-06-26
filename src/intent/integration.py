@@ -12,7 +12,7 @@ from src.intent.data_models import IntentContext
 from src.intent.error_translator import ErrorTranslator
 from src.intent.intent_mapper import IntentError, IntentMapper
 from src.intent.path_validator import PathValidator
-from src.models import CommandExecutionError, ValidationError
+from src.models import CommandExecutionError, EnhancedCommandResult, ValidationError
 
 logger = logging.getLogger("kiro.pants.intent")
 
@@ -270,6 +270,9 @@ def execute_with_error_handling(
                 hasattr(result, "exit_code") and result.exit_code == 0
             ):
                 output = result.stdout if hasattr(result, "stdout") else str(result)
+                # Use formatted_summary from EnhancedCommandResult if available
+                if isinstance(result, EnhancedCommandResult) and result.formatted_summary:
+                    output = result.formatted_summary
                 return SuccessResponse(
                     success=True,
                     output=output,
@@ -277,7 +280,18 @@ def execute_with_error_handling(
                     additional_options=additional_options,
                 )
             else:
-                # Command executed but failed
+                # Command failed - check if we have structured output from
+                # EnhancedCommandResult (parser already ran in PantsCommands)
+                if isinstance(result, EnhancedCommandResult) and result.formatted_summary:
+                    return ErrorResponse(
+                        success=False,
+                        error_type="pants",
+                        message=result.formatted_summary,
+                        raw_error=result.output,
+                        context={"target_spec": target_spec, "command": command},
+                    )
+
+                # No structured output available - fall through to error translation
                 stderr = result.stderr if hasattr(result, "stderr") else ""
                 raise PantsExecutionError(
                     "Pants command failed",

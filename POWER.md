@@ -67,7 +67,7 @@ Test that everything is set up correctly:
 # Verify Pants is installed
 # Use the container_exec tool with command: "pants --version"
 
-# Expected output: Pants version 2.27.0 or similar
+# Expected output: Pants version 2.29.x or similar
 ```
 
 ## Common Workflows
@@ -586,17 +586,17 @@ pants_clear_cache()
 The power determines its workspace (repository root) using this resolution order:
 
 1. **`--workspace` CLI argument** — for manual/scripted invocation
-2. **`WORKSPACE_FOLDER` environment variable** — set in the MCP server config's `env` block
-3. **MCP protocol roots** — the workspace root provided by Kiro via the MCP protocol at first tool call
-4. **Current working directory** — `Path.cwd()` (final fallback)
+2. **`WORKSPACE_FOLDER` environment variable** — for explicit configuration in CI or shell
+3. **Current working directory** — only if it contains a `.devcontainer/` directory
+4. **MCP protocol roots** — the workspace roots provided by Kiro via the MCP protocol at first tool call (searches all roots for one with `.devcontainer/`)
 
-In normal usage with Kiro, you shouldn't need to configure anything manually. The power's `mcp.json` sets `WORKSPACE_FOLDER` to `${workspaceFolder}`, and the MCP protocol roots provide an additional automatic discovery mechanism.
+In normal usage with Kiro, **no configuration is needed**. The power defers workspace resolution to the MCP roots mechanism, which Kiro provides automatically. On the first tool call, the power asks Kiro for its workspace roots and finds the one containing `.devcontainer/`.
 
-If you're seeing errors like "Current directory: /" or ".devcontainer/ not found", it likely means Kiro isn't interpolating `${workspaceFolder}` in the env block. The MCP roots fallback should handle this automatically on the first tool call. If it doesn't, you can set the env var explicitly in your shell before launching Kiro:
+For multi-root workspaces, the power searches all roots and uses the first one that has a `.devcontainer/` directory.
 
-```bash
-export WORKSPACE_FOLDER=/path/to/your/workspace
-```
+If you need to override this (e.g., for scripted usage outside Kiro), you can either:
+- Pass `--workspace /path/to/repo` as a CLI argument
+- Set `WORKSPACE_FOLDER=/path/to/repo` in the environment
 
 ### Environment Variables
 
@@ -627,4 +627,4 @@ Available workflow sequences:
 **Package:** `pants-devcontainer-power`
 **Runtime:** Python 3.12
 **DevContainer CLI:** Required (`npm install -g @devcontainers/cli`)
-**Pants Version:** 2.27.0 (inside devcontainer)
+**Pants Version:** 2.29 (inside devcontainer)

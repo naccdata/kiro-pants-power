@@ -395,18 +395,20 @@ args = ["--linecount-report=reports"]  # Generate reports
 
 ---
 
-## Current Implementation Gaps
+## Current Implementation Status
 
-Based on code review of existing implementation:
+Based on code review of current implementation:
 
-1. **No structured output parsing**: Currently only captures raw stdout/stderr
-2. **No report file handling**: JUnit XML, coverage reports not extracted
-3. **No sandbox path extraction**: Missing opportunity for artifact inspection
-4. **Limited error context**: Full output dumps instead of relevant excerpts
-5. **No streaming progress**: Workflow orchestrator doesn't show real-time progress
-6. **No coverage integration**: Coverage data not captured or reported
+1. **Structured output parsing**: ✅ Implemented — `ParserRouter` dispatches to specialized parsers (MyPy, JUnit, Coverage, Pytest)
+2. **Report file handling**: ✅ Implemented — JUnit XML and coverage reports parsed from `dist/test-reports`
+3. **Sandbox path extraction**: ✅ Implemented — `SandboxPathExtractor` captures sandbox paths from output
+4. **Structured error messages**: ✅ Implemented — `EnhancedErrorFormatter` produces actionable summaries
+5. **Streaming progress**: Partial — `WorkflowOrchestrator` supports progress callbacks
+6. **Coverage integration**: ✅ Implemented — `CoverageReportParser` handles JSON and XML formats
 7. **No retry logic**: Test retries not configured or handled
 8. **No batch optimization**: No use of batching or pytest-xdist features
+
+**Note**: The parser and formatter are now wired up in the server initialization. Previously they were instantiated but never connected to `PantsCommands`, which caused the structured output to be unavailable.
 
 ---
 
@@ -414,21 +416,21 @@ Based on code review of existing implementation:
 
 ### High Priority
 
-1. **Parse JUnit XML reports**: Extract structured test results
-2. **Capture coverage metrics**: Parse JSON/XML coverage reports
-3. **Extract sandbox paths**: Parse logs for `--keep-sandboxes` output
-4. **Structured error messages**: Parse failures for specific error types
+1. ~~**Parse JUnit XML reports**~~: ✅ Done — `JUnitXMLParser`
+2. ~~**Capture coverage metrics**~~: ✅ Done — `CoverageReportParser`
+3. ~~**Extract sandbox paths**~~: ✅ Done — `SandboxPathExtractor`
+4. ~~**Structured error messages**~~: ✅ Done — `EnhancedErrorFormatter`
 
 ### Medium Priority
 
-5. **Enable report generation**: Configure JUnit XML and coverage by default
-6. **Streaming progress**: Show real-time output during long operations
-7. **Artifact management**: Copy reports to accessible locations
-8. **Failure summaries**: Provide concise failure counts and details
+5. **Enable report generation by default**: Configure JUnit XML and coverage in `pants.toml` recommendations
+6. **Streaming progress**: Show real-time output during long operations (partially implemented via progress callbacks)
+7. **Artifact management**: Copy reports to accessible locations outside the container
+8. **Failure summaries**: ✅ Done — concise summaries with error counts
 
 ### Low Priority
 
 9. **Batch optimization**: Configure batching for fixture-heavy tests
 10. **Retry configuration**: Enable automatic retries for flaky tests
-11. **MyPy report parsing**: Extract type checking statistics
-12. **Performance metrics**: Track and report execution times
+11. ~~**MyPy report parsing**~~: ✅ Done — `MyPyOutputParser`
+12. **Performance metrics**: Track and report execution times (partially done via `execution_time` in `EnhancedCommandResult`)
