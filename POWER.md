@@ -76,7 +76,7 @@ Test that everything is set up correctly:
 
 ## Common Workflows
 
-**Note:** All tool calls require `workspace_folder` — the absolute path to the repository root with `.devcontainer/`. The agent fills this in automatically. Examples below show it explicitly in the first workflow, then omit it for brevity.
+**Note:** All tool calls require `workspace_folder` — the absolute path to the repository root with `.devcontainer/`. Examples below show it explicitly in the first workflow, then omit it for brevity.
 
 ### Workflow 1: Quick Code Quality Check
 
@@ -592,7 +592,7 @@ pants_clear_cache()
 
 ### Workspace Path
 
-Every tool call requires a `workspace_folder` parameter — the absolute path to the repository root that contains `.devcontainer/`. The agent (Kiro) fills this in automatically based on the workspace root.
+Every tool call requires a `workspace_folder` parameter — the absolute path to the repository root that contains `.devcontainer/`.
 
 Example: `workspace_folder="/Users/you/projects/my-repo"`
 
