@@ -19,7 +19,7 @@ This is non-negotiable for consistent dependency resolution and environment isol
 
 ## Build System
 
-- **Pants v2.27.0**: Modern build system for Python monorepos and multi-language projects
+- **Pants v2.29**: Modern build system for Python monorepos and multi-language projects
 - **DevContainer CLI**: Development container management via `@devcontainers/cli` npm package
 - **Docker**: Container runtime for devcontainer execution
 

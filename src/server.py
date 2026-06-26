@@ -23,6 +23,8 @@ from src.formatters import (
     format_success,
     format_validation_error,
 )
+from src.formatters.enhanced_error_formatter import EnhancedErrorFormatter
+from src.parsers.parser_router import ParserRouter
 from src.intent.tool_executor import ToolExecutor
 from src.intent.tool_schemas import (
     TOOL_DESCRIPTIONS,
@@ -210,7 +212,13 @@ class PantsDevContainerServer:
             container_manager = ContainerManager(
                 workspace_folder=self.config.repository_root
             )
-            self.pants_commands = PantsCommands(container_manager=container_manager)
+            parser_router = ParserRouter()
+            formatter = EnhancedErrorFormatter()
+            self.pants_commands = PantsCommands(
+                container_manager=container_manager,
+                parser_router=parser_router,
+                formatter=formatter,
+            )
             self.container_lifecycle = ContainerLifecycle(
                 container_manager=container_manager
             )
@@ -549,6 +557,7 @@ class PantsDevContainerServer:
                 command=result.command,
                 exit_code=result.exit_code,
                 output=result.output,
+                result=result,
             )
 
         return [TextContent(type="text", text=text)]
@@ -568,9 +577,13 @@ class PantsDevContainerServer:
         if result.results:
             text += "\n\n--- Step Details ---\n"
             for i, step_result in enumerate(result.results):
-                step_name = (
-                    result.steps_completed[i] if i < len(result.steps_completed) else "unknown"
-                )
+                # Use steps_completed for successful steps, failed_step for the last one
+                if i < len(result.steps_completed):
+                    step_name = result.steps_completed[i]
+                elif result.failed_step:
+                    step_name = result.failed_step
+                else:
+                    step_name = "unknown"
                 text += f"\nStep: {step_name}\n"
                 text += f"Command: {step_result.command}\n"
                 text += f"Exit code: {step_result.exit_code}\n"

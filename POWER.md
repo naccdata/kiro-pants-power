@@ -67,7 +67,7 @@ Test that everything is set up correctly:
 # Verify Pants is installed
 # Use the container_exec tool with command: "pants --version"
 
-# Expected output: Pants version 2.27.0 or similar
+# Expected output: Pants version 2.29.x or similar
 ```
 
 ## Common Workflows
@@ -627,4 +627,4 @@ Available workflow sequences:
 **Package:** `pants-devcontainer-power`
 **Runtime:** Python 3.12
 **DevContainer CLI:** Required (`npm install -g @devcontainers/cli`)
-**Pants Version:** 2.27.0 (inside devcontainer)
+**Pants Version:** 2.29 (inside devcontainer)
