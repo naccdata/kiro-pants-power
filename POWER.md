@@ -18,6 +18,8 @@ This power provides MCP tools organized into four categories:
 - **Workflow Orchestration**: full_quality_check, pants_workflow
 - **Utilities**: clear_cache
 
+**Every tool requires a `workspace_folder` parameter** — the absolute path to the repository root that contains `.devcontainer/`. This makes the power work reliably regardless of how the server process is launched.
+
 All commands ensure the devcontainer is running before execution, providing consistent environment management and clear error messages when issues occur.
 
 ## Onboarding
@@ -52,9 +54,11 @@ Before using this power, you need:
 This power is installed as an MCP server in Kiro:
 
 1. Add the power to your Kiro configuration
-2. The power will validate prerequisites on startup
-3. If devcontainer CLI is missing, you'll see installation instructions
-4. If `.devcontainer/` directory is missing, you'll be prompted to use a compatible repository
+2. The server starts immediately with no startup validation
+3. On first tool call, it validates that:
+   - The provided `workspace_folder` exists and has `.devcontainer/`
+   - The devcontainer CLI is installed
+4. Components are cached per workspace for subsequent calls
 
 ### Verification
 
@@ -72,6 +76,8 @@ Test that everything is set up correctly:
 
 ## Common Workflows
 
+**Note:** All tool calls require `workspace_folder` — the absolute path to the repository root with `.devcontainer/`. The agent fills this in automatically. Examples below show it explicitly in the first workflow, then omit it for brevity.
+
 ### Workflow 1: Quick Code Quality Check
 
 **Goal:** Format code and check for linting issues before committing
@@ -83,13 +89,13 @@ Test that everything is set up correctly:
 **Example:**
 ```
 # Fix all code
-pants_fix()
+pants_fix(workspace_folder="/path/to/repo")
 
 # Or fix specific directory
-pants_fix(target="common/src/python::")
+pants_fix(workspace_folder="/path/to/repo", target="common/src/python::")
 
 # Then verify linting
-pants_lint()
+pants_lint(workspace_folder="/path/to/repo")
 ```
 
 **Common Errors:**
@@ -230,6 +236,9 @@ pants_test()
 
 ## MCP Tools Reference
 
+**Common required parameter for all tools:**
+- `workspace_folder` (required, string): Absolute path to the repository root containing `.devcontainer/`
+
 ### Pants Command Tools
 
 #### pants_fix
@@ -309,7 +318,7 @@ pants_package(target="apps/gear-identifier::")
 #### container_start
 **Purpose:** Start the devcontainer (idempotent - safe to call multiple times)
 
-**Parameters:** None
+**Parameters:** `workspace_folder` only (no additional parameters)
 
 **Returns:** Command output and exit code
 
@@ -323,7 +332,7 @@ container_start()
 #### container_stop
 **Purpose:** Stop the devcontainer
 
-**Parameters:** None
+**Parameters:** `workspace_folder` only (no additional parameters)
 
 **Returns:** Command output and exit code
 
@@ -335,7 +344,7 @@ container_stop()
 #### container_rebuild
 **Purpose:** Rebuild and restart the devcontainer (use when dependencies change)
 
-**Parameters:** None
+**Parameters:** `workspace_folder` only (no additional parameters)
 
 **Returns:** Command output and exit code
 
@@ -367,7 +376,7 @@ container_exec(command="pants --version")
 #### container_shell
 **Purpose:** Get instructions for opening interactive shell
 
-**Parameters:** None
+**Parameters:** `workspace_folder` only (no additional parameters)
 
 **Returns:** Instructions with command to run manually
 
@@ -429,7 +438,7 @@ pants_workflow(workflow="check-test")
 #### pants_clear_cache
 **Purpose:** Clear Pants cache to resolve filesystem issues
 
-**Parameters:** None
+**Parameters:** `workspace_folder` only (no additional parameters)
 
 **Returns:** Command output and exit code
 
@@ -487,16 +496,16 @@ pants_clear_cache()
 5. Verify sufficient disk space and memory
 
 #### Problem: ".devcontainer/ directory not found"
-**Cause:** Running power in repository without devcontainer configuration
+**Cause:** The `workspace_folder` parameter points to a directory without devcontainer configuration
 
 **Solution:**
-1. Verify you're in the correct repository
-2. Check for `.devcontainer/` directory:
+1. Verify the `workspace_folder` path is correct
+2. Check for `.devcontainer/` directory in that path:
    ```bash
-   ls -la .devcontainer/
+   ls -la /path/to/workspace/.devcontainer/
    ```
 3. If missing, this repository doesn't support devcontainer development
-4. Switch to NACC Flywheel Extensions repository
+4. Use the path to a repository that has `.devcontainer/` (e.g., NACC Flywheel Extensions)
 
 ### Pants Issues
 
@@ -581,27 +590,18 @@ pants_clear_cache()
 
 ## Configuration
 
-### Workspace Path Resolution
+### Workspace Path
 
-The power determines its workspace (repository root) using this resolution order:
+Every tool call requires a `workspace_folder` parameter — the absolute path to the repository root that contains `.devcontainer/`. The agent (Kiro) fills this in automatically based on the workspace root.
 
-1. **`--workspace` CLI argument** — for manual/scripted invocation
-2. **`WORKSPACE_FOLDER` environment variable** — for explicit configuration in CI or shell
-3. **Current working directory** — only if it contains a `.devcontainer/` directory
-4. **MCP protocol roots** — the workspace roots provided by Kiro via the MCP protocol at first tool call (searches all roots for one with `.devcontainer/`)
+Example: `workspace_folder="/Users/you/projects/my-repo"`
 
-In normal usage with Kiro, **no configuration is needed**. The power defers workspace resolution to the MCP roots mechanism, which Kiro provides automatically. On the first tool call, the power asks Kiro for its workspace roots and finds the one containing `.devcontainer/`.
-
-For multi-root workspaces, the power searches all roots and uses the first one that has a `.devcontainer/` directory.
-
-If you need to override this (e.g., for scripted usage outside Kiro), you can either:
-- Pass `--workspace /path/to/repo` as a CLI argument
-- Set `WORKSPACE_FOLDER=/path/to/repo` in the environment
+The power caches initialized components per workspace path, so repeated calls to the same workspace are efficient.
 
 ### Environment Variables
 
-The power uses or sets these environment variables:
-- `WORKSPACE_FOLDER`: Repository root path (read at startup for workspace resolution; also set for devcontainer commands)
+The power sets these environment variables for devcontainer commands:
+- `WORKSPACE_FOLDER`: Set to the provided workspace path for devcontainer CLI
 - `DOCKER_CLI_HINTS`: Set to "false" to suppress Docker hints during container operations
 
 ### Pants Target Specifications

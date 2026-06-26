@@ -1,6 +1,6 @@
 {
   "name": "pants-devcontainer-power",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "MCP tools for Pants build system with devcontainer integration",
   "keywords": ["pants", "build", "devcontainer", "workflow", "monorepo", "nacc"],
   "runtime": {
@@ -15,12 +15,16 @@
       "inputSchema": {
         "type": "object",
         "properties": {
+          "workspace_folder": {
+            "type": "string",
+            "description": "Absolute path to the repository root containing .devcontainer/"
+          },
           "target": {
             "type": "string",
-            "description": "Pants target specification (default: '::')",
-            "default": "::"
+            "description": "Pants target specification (default: '::')"
           }
-        }
+        },
+        "required": ["workspace_folder"]
       }
     },
     {
@@ -29,12 +33,16 @@
       "inputSchema": {
         "type": "object",
         "properties": {
+          "workspace_folder": {
+            "type": "string",
+            "description": "Absolute path to the repository root containing .devcontainer/"
+          },
           "target": {
             "type": "string",
-            "description": "Pants target specification (default: '::')",
-            "default": "::"
+            "description": "Pants target specification (default: '::')"
           }
-        }
+        },
+        "required": ["workspace_folder"]
       }
     },
     {
@@ -43,12 +51,16 @@
       "inputSchema": {
         "type": "object",
         "properties": {
+          "workspace_folder": {
+            "type": "string",
+            "description": "Absolute path to the repository root containing .devcontainer/"
+          },
           "target": {
             "type": "string",
-            "description": "Pants target specification (default: '::')",
-            "default": "::"
+            "description": "Pants target specification (default: '::')"
           }
-        }
+        },
+        "required": ["workspace_folder"]
       }
     },
     {
@@ -57,12 +69,16 @@
       "inputSchema": {
         "type": "object",
         "properties": {
+          "workspace_folder": {
+            "type": "string",
+            "description": "Absolute path to the repository root containing .devcontainer/"
+          },
           "target": {
             "type": "string",
-            "description": "Pants target specification (default: '::')",
-            "default": "::"
+            "description": "Pants target specification (default: '::')"
           }
-        }
+        },
+        "required": ["workspace_folder"]
       }
     },
     {
@@ -71,12 +87,34 @@
       "inputSchema": {
         "type": "object",
         "properties": {
+          "workspace_folder": {
+            "type": "string",
+            "description": "Absolute path to the repository root containing .devcontainer/"
+          },
           "target": {
             "type": "string",
-            "description": "Pants target specification (default: '::')",
-            "default": "::"
+            "description": "Pants target specification (default: '::')"
           }
-        }
+        },
+        "required": ["workspace_folder"]
+      }
+    },
+    {
+      "name": "pants_tailor",
+      "description": "Generate or update BUILD files for source files",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "workspace_folder": {
+            "type": "string",
+            "description": "Absolute path to the repository root containing .devcontainer/"
+          },
+          "target": {
+            "type": "string",
+            "description": "Pants target specification (default: '::')"
+          }
+        },
+        "required": ["workspace_folder"]
       }
     },
     {
@@ -84,7 +122,13 @@
       "description": "Start the devcontainer (idempotent)",
       "inputSchema": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "workspace_folder": {
+            "type": "string",
+            "description": "Absolute path to the repository root containing .devcontainer/"
+          }
+        },
+        "required": ["workspace_folder"]
       }
     },
     {
@@ -92,7 +136,13 @@
       "description": "Stop the devcontainer",
       "inputSchema": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "workspace_folder": {
+            "type": "string",
+            "description": "Absolute path to the repository root containing .devcontainer/"
+          }
+        },
+        "required": ["workspace_folder"]
       }
     },
     {
@@ -100,7 +150,13 @@
       "description": "Rebuild and restart the devcontainer",
       "inputSchema": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "workspace_folder": {
+            "type": "string",
+            "description": "Absolute path to the repository root containing .devcontainer/"
+          }
+        },
+        "required": ["workspace_folder"]
       }
     },
     {
@@ -109,12 +165,16 @@
       "inputSchema": {
         "type": "object",
         "properties": {
+          "workspace_folder": {
+            "type": "string",
+            "description": "Absolute path to the repository root containing .devcontainer/"
+          },
           "command": {
             "type": "string",
             "description": "Shell command to execute"
           }
         },
-        "required": ["command"]
+        "required": ["workspace_folder", "command"]
       }
     },
     {
@@ -122,7 +182,13 @@
       "description": "Provide instructions for opening interactive shell",
       "inputSchema": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "workspace_folder": {
+            "type": "string",
+            "description": "Absolute path to the repository root containing .devcontainer/"
+          }
+        },
+        "required": ["workspace_folder"]
       }
     },
     {
@@ -131,12 +197,16 @@
       "inputSchema": {
         "type": "object",
         "properties": {
+          "workspace_folder": {
+            "type": "string",
+            "description": "Absolute path to the repository root containing .devcontainer/"
+          },
           "target": {
             "type": "string",
-            "description": "Pants target specification (default: '::')",
-            "default": "::"
+            "description": "Pants target specification (default: '::')"
           }
-        }
+        },
+        "required": ["workspace_folder"]
       }
     },
     {
@@ -145,6 +215,10 @@
       "inputSchema": {
         "type": "object",
         "properties": {
+          "workspace_folder": {
+            "type": "string",
+            "description": "Absolute path to the repository root containing .devcontainer/"
+          },
           "workflow": {
             "type": "string",
             "description": "Workflow name",
@@ -152,11 +226,10 @@
           },
           "target": {
             "type": "string",
-            "description": "Pants target specification (default: '::')",
-            "default": "::"
+            "description": "Pants target specification (default: '::')"
           }
         },
-        "required": ["workflow"]
+        "required": ["workspace_folder", "workflow"]
       }
     },
     {
@@ -164,7 +237,13 @@
       "description": "Clear Pants cache to resolve filesystem issues",
       "inputSchema": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "workspace_folder": {
+            "type": "string",
+            "description": "Absolute path to the repository root containing .devcontainer/"
+          }
+        },
+        "required": ["workspace_folder"]
       }
     }
   ]

@@ -2,11 +2,14 @@
 
 This module implements the Model Context Protocol (MCP) server that exposes
 Pants build system tools with automatic devcontainer integration.
+
+Each tool accepts a workspace_folder parameter that specifies the repository
+root containing .devcontainer/. This avoids startup-time workspace resolution
+issues and works reliably regardless of how the server process is launched.
 """
 
-import argparse
 import asyncio
-import os
+import logging
 import sys
 from pathlib import Path
 from typing import Any
@@ -19,12 +22,10 @@ from src.container_lifecycle import ContainerLifecycle
 from src.container_manager import ContainerManager
 from src.formatters import (
     format_command_execution_error,
-    format_container_error,
     format_success,
     format_validation_error,
 )
 from src.formatters.enhanced_error_formatter import EnhancedErrorFormatter
-from src.parsers.parser_router import ParserRouter
 from src.intent.tool_executor import ToolExecutor
 from src.intent.tool_schemas import (
     TOOL_DESCRIPTIONS,
@@ -43,263 +44,142 @@ from src.models import (
     WorkflowResult,
 )
 from src.pants_commands import PantsCommands
+from src.parsers.parser_router import ParserRouter
 from src.workflow_orchestrator import WorkflowOrchestrator
 from src.workflow_tools import WorkflowTools
 
+logger = logging.getLogger(__name__)
 
-def _resolve_workspace_path() -> Path | None:
-    """Resolve the workspace path from environment or cwd.
-
-    Resolution order:
-        1. WORKSPACE_FOLDER environment variable (for explicit configuration)
-        2. Current working directory IF it contains .devcontainer/
-        3. None (defer to MCP roots resolution on first tool call)
-
-    Returns:
-        Resolved Path to the workspace root, or None if no valid workspace found
-    """
-    env_workspace = os.environ.get("WORKSPACE_FOLDER")
-    if env_workspace:
-        path = Path(env_workspace).resolve()
-        if path.exists():
-            return path
-
-    # Only use cwd if it actually looks like the target workspace
-    cwd = Path.cwd()
-    if (cwd / ".devcontainer").exists():
-        return cwd
-
-    # Defer to MCP roots resolution
-    return None
+# workspace_folder parameter added to every tool schema
+WORKSPACE_FOLDER_PARAMETER: dict[str, Any] = {
+    "workspace_folder": {
+        "type": "string",
+        "description": (
+            "Absolute path to the repository root that contains .devcontainer/. "
+            "This is the workspace where Pants commands will be executed."
+        ),
+    }
+}
 
 
-def _path_from_file_uri(uri: str) -> Path:
-    """Convert a file:// URI to a Path.
+def _inject_workspace_param(schema: dict[str, Any]) -> dict[str, Any]:
+    """Add workspace_folder to a tool's input schema.
 
     Args:
-        uri: A file:// URI string
+        schema: Existing tool input schema
 
     Returns:
-        Path extracted from the URI
+        New schema with workspace_folder added to properties and required
     """
-    # file:///Users/foo/bar -> /Users/foo/bar
-    if uri.startswith("file://"):
-        return Path(uri[7:])
-    return Path(uri)
+    new_schema = dict(schema)
+    new_props = {**WORKSPACE_FOLDER_PARAMETER, **new_schema.get("properties", {})}
+    new_schema["properties"] = new_props
+    required = list(new_schema.get("required", []))
+    if "workspace_folder" not in required:
+        required.insert(0, "workspace_folder")
+    new_schema["required"] = required
+    return new_schema
 
 
-class PowerConfig:
-    """Configuration for the Pants DevContainer Power.
+class WorkspaceSession:
+    """Cached components for a validated workspace.
 
-    Attributes:
-        name: Power name
-        version: Power version
-        description: Power description
-        python_version: Required Python version
-        repository_root: Path to repository root
-        report_output_dir: Directory where Pants generates report files (JUnit XML, coverage)
-        max_errors_per_category: Maximum number of errors to show per category in formatted output
-        enable_verbose_parsing: Whether to include detailed parsing error messages in output
-        keep_sandboxes: Pants sandbox preservation mode ("always", "on_failure", "never")
+    Holds the initialized ContainerManager, PantsCommands, etc. for a
+    specific workspace_folder path so we don't re-create them every call.
     """
 
-    def __init__(
-        self,
-        name: str = "pants-devcontainer-power",
-        version: str = "0.1.0",
-        description: str = "MCP tools for Pants build system with devcontainer integration",
-        python_version: str = "3.12+",
-        repository_root: Path | None = None,
-        report_output_dir: str = "dist/test-reports",
-        max_errors_per_category: int = 10,
-        enable_verbose_parsing: bool = False,
-        keep_sandboxes: str = "on_failure",
-    ):
-        """Initialize PowerConfig.
+    def __init__(self, workspace_folder: Path):
+        """Initialize session components for a workspace.
 
         Args:
-            name: Power name
-            version: Power version
-            description: Power description
-            python_version: Required Python version
-            repository_root: Path to repository root. Resolution order:
-                1. Explicit value passed here (e.g. from --workspace CLI arg)
-                2. WORKSPACE_FOLDER environment variable
-                3. Current working directory (if it contains .devcontainer/)
-                4. MCP protocol roots (resolved async on first tool call)
-            report_output_dir: Directory where Pants generates report files
-                (default: "dist/test-reports")
-            max_errors_per_category: Maximum number of errors to show per
-                category (default: 10)
-            enable_verbose_parsing: Whether to include detailed parsing error
-                messages (default: False)
-            keep_sandboxes: Pants sandbox preservation mode - "always",
-                "on_failure", or "never" (default: "on_failure")
-        """
-        self.name = name
-        self.version = version
-        self.description = description
-        self.python_version = python_version
-        self.repository_root = repository_root or _resolve_workspace_path()
-        self.report_output_dir = report_output_dir
-        self.max_errors_per_category = max_errors_per_category
-        self.enable_verbose_parsing = enable_verbose_parsing
-        self.keep_sandboxes = keep_sandboxes
-
-    def validate(self) -> None:
-        """Validate that prerequisites are met.
+            workspace_folder: Validated path to repo root with .devcontainer/
 
         Raises:
-            PowerError: If devcontainer CLI is not installed or .devcontainer/ is missing
+            ContainerError: If devcontainer CLI is missing or .devcontainer/ not found
         """
-        # This validation is now handled by ContainerManager.__init__
-        # We create a temporary ContainerManager to trigger validation
-        try:
-            ContainerManager(workspace_folder=self.repository_root)
-        except ContainerError as e:
-            raise PowerError(str(e)) from e
+        self.workspace_folder = workspace_folder
+        self.container_manager = ContainerManager(workspace_folder=workspace_folder)
+        parser_router = ParserRouter()
+        formatter = EnhancedErrorFormatter()
+        self.pants_commands = PantsCommands(
+            container_manager=self.container_manager,
+            parser_router=parser_router,
+            formatter=formatter,
+        )
+        self.container_lifecycle = ContainerLifecycle(
+            container_manager=self.container_manager
+        )
+        self.workflow_tools = WorkflowTools(
+            orchestrator=WorkflowOrchestrator(pants_commands=self.pants_commands)
+        )
+        self.tool_executor = ToolExecutor(
+            self.pants_commands, repo_root=workspace_folder
+        )
 
 
 class PantsDevContainerServer:
     """MCP server for Pants DevContainer Power.
 
-    This server exposes MCP tools for managing Pants workflows in devcontainers:
-    - Pants command tools (fix, lint, check, test, package)
+    This server exposes MCP tools for managing Pants workflows in devcontainers.
+    Each tool call includes a workspace_folder parameter so the server doesn't
+    need to resolve the workspace at startup.
+
+    Tools:
+    - Pants command tools (fix, lint, check, test, package, tailor)
     - Container lifecycle tools (start, stop, rebuild, exec, shell)
     - Workflow tools (full_quality_check, pants_workflow)
     - Utility tools (pants_clear_cache)
-
-    The server resolves the workspace path using this priority:
-    1. --workspace CLI argument
-    2. WORKSPACE_FOLDER environment variable
-    3. MCP protocol roots (from client during first tool call)
-    4. Current working directory (fallback)
-
-    Attributes:
-        config: PowerConfig instance
-        server: MCP Server instance
-        pants_commands: PantsCommands instance for Pants operations
-        container_lifecycle: ContainerLifecycle instance for container operations
-        workflow_tools: WorkflowTools instance for workflow orchestration
     """
 
-    def __init__(self, config: PowerConfig | None = None):
-        """Initialize the MCP server.
-
-        Args:
-            config: PowerConfig instance (creates default if None)
-        """
-        self.config = config or PowerConfig()
-
-        # Track whether we've attempted workspace resolution via MCP roots
-        self._roots_resolved = False
-        self._initialized = False
+    def __init__(self):
+        """Initialize the MCP server."""
+        # Cache of WorkspaceSession instances keyed by resolved path string
+        self._sessions: dict[str, WorkspaceSession] = {}
 
         # Initialize MCP server
-        self.server = Server(self.config.name)
-
-        # Attempt initial setup with current workspace path
-        self._try_initialize()
+        self.server = Server("pants-devcontainer-power")
 
         # Register tools
         self._register_tools()
 
-    def _try_initialize(self) -> None:
-        """Attempt to initialize components with current workspace path.
+    def _get_session(self, workspace_folder: str | None) -> WorkspaceSession:
+        """Get or create a WorkspaceSession for the given workspace path.
 
-        Sets _devcontainer_available and _unavailable_reason based on whether
-        the devcontainer environment is accessible.
-        """
-        self._devcontainer_available = True
-        self._unavailable_reason = ""
-
-        # If no workspace path resolved, defer to MCP roots
-        if self.config.repository_root is None:
-            self._devcontainer_available = False
-            self._unavailable_reason = (
-                "No workspace path resolved at startup. "
-                "Will attempt to resolve from MCP roots on first tool call."
-            )
-            return
-
-        try:
-            self.config.validate()
-        except PowerError as e:
-            self._devcontainer_available = False
-            self._unavailable_reason = str(e)
-
-        # Initialize components only if devcontainer is available
-        if self._devcontainer_available:
-            container_manager = ContainerManager(
-                workspace_folder=self.config.repository_root
-            )
-            parser_router = ParserRouter()
-            formatter = EnhancedErrorFormatter()
-            self.pants_commands = PantsCommands(
-                container_manager=container_manager,
-                parser_router=parser_router,
-                formatter=formatter,
-            )
-            self.container_lifecycle = ContainerLifecycle(
-                container_manager=container_manager
-            )
-            self.workflow_tools = WorkflowTools(
-                orchestrator=WorkflowOrchestrator(
-                    pants_commands=self.pants_commands
-                )
-            )
-            self.tool_executor = ToolExecutor(
-                self.pants_commands, repo_root=self.config.repository_root
-            )
-            self._initialized = True
-
-    async def _resolve_workspace_from_roots(self) -> bool:
-        """Try to resolve workspace path from MCP protocol roots.
-
-        This is called on the first tool invocation if no valid workspace was
-        found at startup. It asks the MCP client (Kiro) for its workspace
-        roots via the protocol and looks for one with a .devcontainer/ directory.
+        Args:
+            workspace_folder: Path string from the tool call arguments
 
         Returns:
-            True if workspace was successfully resolved and components initialized
-        """
-        if self._roots_resolved:
-            return False
-        self._roots_resolved = True
+            Initialized WorkspaceSession
 
-        try:
-            session = self.server.request_context.session
-            result = await session.list_roots()
-            if result.roots:
-                # Search all roots for one with .devcontainer/
-                for root in result.roots:
-                    root_path = _path_from_file_uri(str(root.uri))
-                    if root_path.exists() and (root_path / ".devcontainer").exists():
-                        self.config.repository_root = root_path
-                        self._try_initialize()
-                        return self._devcontainer_available
-        except Exception:
-            # list_roots may not be supported by the client, or may fail
-            # for other reasons — that's fine, we fall back gracefully
-            pass
-        return False
+        Raises:
+            ValidationError: If workspace_folder is missing or doesn't exist
+            ContainerError: If .devcontainer/ not found or CLI missing
+        """
+        if not workspace_folder:
+            raise ValidationError(
+                "Parameter 'workspace_folder' is required.\n\n"
+                "Provide the absolute path to the repository root that "
+                "contains a .devcontainer/ directory."
+            )
+
+        path = Path(workspace_folder).resolve()
+        key = str(path)
+
+        if key in self._sessions:
+            return self._sessions[key]
+
+        if not path.exists():
+            raise ValidationError(
+                f"Workspace folder does not exist: {workspace_folder}"
+            )
+
+        # ContainerManager.__init__ validates .devcontainer/ and CLI
+        session = WorkspaceSession(workspace_folder=path)
+        self._sessions[key] = session
+        return session
 
     def _register_tools(self) -> None:
         """Register all MCP tools with the server."""
-        # Register Pants command tools
-        self._register_pants_tools()
-
-        # Register container lifecycle tools
-        self._register_container_tools()
-
-        # Register workflow tools
-        self._register_workflow_tools()
-
-        # Register utility tools
-        self._register_utility_tools()
-
-    def _register_pants_tools(self) -> None:  # noqa: C901
-        """Register Pants command tools."""
 
         @self.server.list_tools()
         async def list_tools() -> list[Tool]:
@@ -308,32 +188,32 @@ class PantsDevContainerServer:
                 Tool(
                     name="pants_fix",
                     description=TOOL_DESCRIPTIONS["pants_fix"],
-                    inputSchema=get_pants_fix_schema(),
+                    inputSchema=_inject_workspace_param(get_pants_fix_schema()),
                 ),
                 Tool(
                     name="pants_lint",
                     description=TOOL_DESCRIPTIONS["pants_lint"],
-                    inputSchema=get_pants_lint_schema(),
+                    inputSchema=_inject_workspace_param(get_pants_lint_schema()),
                 ),
                 Tool(
                     name="pants_check",
                     description=TOOL_DESCRIPTIONS["pants_check"],
-                    inputSchema=get_pants_check_schema(),
+                    inputSchema=_inject_workspace_param(get_pants_check_schema()),
                 ),
                 Tool(
                     name="pants_test",
                     description=TOOL_DESCRIPTIONS["pants_test"],
-                    inputSchema=get_pants_test_schema(),
+                    inputSchema=_inject_workspace_param(get_pants_test_schema()),
                 ),
                 Tool(
                     name="pants_package",
                     description=TOOL_DESCRIPTIONS["pants_package"],
-                    inputSchema=get_pants_package_schema(),
+                    inputSchema=_inject_workspace_param(get_pants_package_schema()),
                 ),
                 Tool(
                     name="pants_tailor",
                     description="Generate or update BUILD files for source files",
-                    inputSchema={
+                    inputSchema=_inject_workspace_param({
                         "type": "object",
                         "properties": {
                             "target": {
@@ -341,27 +221,36 @@ class PantsDevContainerServer:
                                 "description": 'Pants target specification (default: "::")',
                             }
                         },
-                    },
+                    }),
                 ),
                 Tool(
                     name="container_start",
                     description="Start the devcontainer (idempotent)",
-                    inputSchema={"type": "object", "properties": {}},
+                    inputSchema=_inject_workspace_param({
+                        "type": "object",
+                        "properties": {},
+                    }),
                 ),
                 Tool(
                     name="container_stop",
                     description="Stop the devcontainer",
-                    inputSchema={"type": "object", "properties": {}},
+                    inputSchema=_inject_workspace_param({
+                        "type": "object",
+                        "properties": {},
+                    }),
                 ),
                 Tool(
                     name="container_rebuild",
                     description="Rebuild and restart the devcontainer",
-                    inputSchema={"type": "object", "properties": {}},
+                    inputSchema=_inject_workspace_param({
+                        "type": "object",
+                        "properties": {},
+                    }),
                 ),
                 Tool(
                     name="container_exec",
                     description="Execute arbitrary command in container",
-                    inputSchema={
+                    inputSchema=_inject_workspace_param({
                         "type": "object",
                         "properties": {
                             "command": {
@@ -370,50 +259,64 @@ class PantsDevContainerServer:
                             }
                         },
                         "required": ["command"],
-                    },
+                    }),
                 ),
                 Tool(
                     name="container_shell",
                     description="Provide instructions for opening interactive shell",
-                    inputSchema={"type": "object", "properties": {}},
+                    inputSchema=_inject_workspace_param({
+                        "type": "object",
+                        "properties": {},
+                    }),
                 ),
                 Tool(
                     name="full_quality_check",
-                    description="Run complete quality check workflow (fix → lint → check → test)",
-                    inputSchema={
+                    description=(
+                        "Run complete quality check workflow "
+                        "(fix → lint → check → test)"
+                    ),
+                    inputSchema=_inject_workspace_param({
                         "type": "object",
                         "properties": {
                             "target": {
                                 "type": "string",
-                                "description": 'Pants target specification (default: "::")',
+                                "description": (
+                                    'Pants target specification (default: "::")'
+                                ),
                             }
                         },
-                    },
+                    }),
                 ),
                 Tool(
                     name="pants_workflow",
                     description="Execute custom workflow sequence",
-                    inputSchema={
+                    inputSchema=_inject_workspace_param({
                         "type": "object",
                         "properties": {
                             "workflow": {
                                 "type": "string",
                                 "description": (
-                                    'Workflow name ("fix-lint", "check-test", "fix-lint-check")'
+                                    'Workflow name '
+                                    '("fix-lint", "check-test", "fix-lint-check")'
                                 ),
                             },
                             "target": {
                                 "type": "string",
-                                "description": 'Pants target specification (default: "::")',
+                                "description": (
+                                    'Pants target specification (default: "::")'
+                                ),
                             },
                         },
                         "required": ["workflow"],
-                    },
+                    }),
                 ),
                 Tool(
                     name="pants_clear_cache",
                     description="Clear Pants cache to resolve filesystem issues",
-                    inputSchema={"type": "object", "properties": {}},
+                    inputSchema=_inject_workspace_param({
+                        "type": "object",
+                        "properties": {},
+                    }),
                 ),
             ]
 
@@ -421,73 +324,49 @@ class PantsDevContainerServer:
         async def call_tool(  # noqa: C901
             name: str, arguments: dict[str, Any]
         ) -> list[TextContent]:
-            """Handle tool invocation requests.
-
-            Args:
-                name: Tool name
-                arguments: Tool parameters
-
-            Returns:
-                List of TextContent with tool results
-
-            Raises:
-                ValueError: If tool name is not recognized
-            """
-            # If devcontainer wasn't available at startup, try resolving
-            # workspace from MCP roots (the client may provide it)
-            if not self._devcontainer_available and not self._roots_resolved:
-                await self._resolve_workspace_from_roots()
-
-            if not self._devcontainer_available:
-                return [
-                    TextContent(
-                        type="text",
-                        text=(
-                            "This tool is not available in the current workspace.\n\n"
-                            f"{self._unavailable_reason}\n\n"
-                            "This power requires a devcontainer-enabled repository "
-                            "to function. No action is needed — this is expected "
-                            "for workspaces without a devcontainer setup."
-                        ),
-                    )
-                ]
-
+            """Handle tool invocation requests."""
             try:
-                # Route to appropriate tool function
+                # Extract and validate workspace_folder from arguments
+                workspace_folder = arguments.pop("workspace_folder", None)
+                session = self._get_session(workspace_folder)
+
+                # Route to appropriate handler
                 if name == "pants_fix":
-                    result = self.tool_executor.execute_pants_fix(arguments)
+                    result = session.tool_executor.execute_pants_fix(arguments)
                     return self._format_command_result(result)
 
                 elif name == "pants_lint":
-                    result = self.tool_executor.execute_pants_lint(arguments)
+                    result = session.tool_executor.execute_pants_lint(arguments)
                     return self._format_command_result(result)
 
                 elif name == "pants_check":
-                    result = self.tool_executor.execute_pants_check(arguments)
+                    result = session.tool_executor.execute_pants_check(arguments)
                     return self._format_command_result(result)
 
                 elif name == "pants_test":
-                    result = self.tool_executor.execute_pants_test(arguments)
+                    result = session.tool_executor.execute_pants_test(arguments)
                     return self._format_command_result(result)
 
                 elif name == "pants_package":
-                    result = self.tool_executor.execute_pants_package(arguments)
+                    result = session.tool_executor.execute_pants_package(arguments)
                     return self._format_command_result(result)
 
                 elif name == "pants_tailor":
-                    result = self.pants_commands.pants_tailor(arguments.get("target"))
+                    result = session.pants_commands.pants_tailor(
+                        arguments.get("target")
+                    )
                     return self._format_command_result(result)
 
                 elif name == "container_start":
-                    result = self.container_lifecycle.container_start()
+                    result = session.container_lifecycle.container_start()
                     return self._format_command_result(result)
 
                 elif name == "container_stop":
-                    result = self.container_lifecycle.container_stop()
+                    result = session.container_lifecycle.container_stop()
                     return self._format_command_result(result)
 
                 elif name == "container_rebuild":
-                    result = self.container_lifecycle.container_rebuild()
+                    result = session.container_lifecycle.container_rebuild()
                     return self._format_command_result(result)
 
                 elif name == "container_exec":
@@ -496,15 +375,15 @@ class PantsDevContainerServer:
                         raise ValidationError(
                             "Parameter 'command' is required for container_exec"
                         )
-                    result = self.container_lifecycle.container_exec(command)
+                    result = session.container_lifecycle.container_exec(command)
                     return self._format_command_result(result)
 
                 elif name == "container_shell":
-                    result = self.container_lifecycle.container_shell()
+                    result = session.container_lifecycle.container_shell()
                     return self._format_command_result(result)
 
                 elif name == "full_quality_check":
-                    workflow_result = self.workflow_tools.full_quality_check(
+                    workflow_result = session.workflow_tools.full_quality_check(
                         arguments.get("target")
                     )
                     return self._format_workflow_result(workflow_result)
@@ -515,13 +394,13 @@ class PantsDevContainerServer:
                         raise ValidationError(
                             "Parameter 'workflow' is required for pants_workflow"
                         )
-                    workflow_result = self.workflow_tools.pants_workflow(
+                    workflow_result = session.workflow_tools.pants_workflow(
                         workflow, arguments.get("target")
                     )
                     return self._format_workflow_result(workflow_result)
 
                 elif name == "pants_clear_cache":
-                    result = self.pants_commands.pants_clear_cache()
+                    result = session.pants_commands.pants_clear_cache()
                     return self._format_command_result(result)
 
                 else:
@@ -530,47 +409,30 @@ class PantsDevContainerServer:
             except ValidationError as e:
                 return [TextContent(type="text", text=format_validation_error(e))]
             except ContainerError as e:
-                return [TextContent(type="text", text=format_container_error(e))]
+                return [
+                    TextContent(
+                        type="text",
+                        text=(
+                            f"Container error: {e!s}\n\n"
+                            "Ensure the workspace_folder path is correct and "
+                            "contains a .devcontainer/ directory."
+                        ),
+                    )
+                ]
             except CommandExecutionError as e:
-                return [TextContent(type="text", text=format_command_execution_error(e))]
+                return [
+                    TextContent(
+                        type="text",
+                        text=format_command_execution_error(e),
+                    )
+                ]
             except PowerError as e:
                 return [TextContent(type="text", text=f"Power error: {e!s}")]
             except Exception as e:
                 return [TextContent(type="text", text=f"Unexpected error: {e!s}")]
 
-    def _register_container_tools(self) -> None:
-        """Register container lifecycle tools.
-
-        Note: Container tools are registered in _register_pants_tools
-        to keep all tools in a single list_tools handler.
-        """
-        pass
-
-    def _register_workflow_tools(self) -> None:
-        """Register workflow orchestration tools.
-
-        Note: Workflow tools are registered in _register_pants_tools
-        to keep all tools in a single list_tools handler.
-        """
-        pass
-
-    def _register_utility_tools(self) -> None:
-        """Register utility tools.
-
-        Note: Utility tools are registered in _register_pants_tools
-        to keep all tools in a single list_tools handler.
-        """
-        pass
-
     def _format_command_result(self, result: CommandResult) -> list[TextContent]:
-        """Format CommandResult as MCP TextContent.
-
-        Args:
-            result: CommandResult to format
-
-        Returns:
-            List containing single TextContent with formatted result
-        """
+        """Format CommandResult as MCP TextContent."""
         if result.success:
             text = format_success(result)
         else:
@@ -581,25 +443,15 @@ class PantsDevContainerServer:
                 output=result.output,
                 result=result,
             )
-
         return [TextContent(type="text", text=text)]
 
     def _format_workflow_result(self, result: WorkflowResult) -> list[TextContent]:
-        """Format WorkflowResult as MCP TextContent.
-
-        Args:
-            result: WorkflowResult to format
-
-        Returns:
-            List containing single TextContent with formatted result
-        """
+        """Format WorkflowResult as MCP TextContent."""
         text = result.summary
 
-        # Add detailed output from each step
         if result.results:
             text += "\n\n--- Step Details ---\n"
             for i, step_result in enumerate(result.results):
-                # Use steps_completed for successful steps, failed_step for the last one
                 if i < len(result.steps_completed):
                     step_name = result.steps_completed[i]
                 elif result.failed_step:
@@ -625,34 +477,11 @@ class PantsDevContainerServer:
 async def async_main() -> None:
     """Async main entry point for the MCP server."""
     try:
-        parser = argparse.ArgumentParser(description="Pants DevContainer Power MCP server")
-        parser.add_argument(
-            "--workspace",
-            type=Path,
-            default=None,
-            help="Path to the workspace/repository root. "
-            "Overrides WORKSPACE_FOLDER env var and cwd.",
-        )
-        args = parser.parse_args()
-
-        workspace = args.workspace
-        if workspace is not None:
-            workspace = workspace.resolve()
-
-        config = PowerConfig(repository_root=workspace)
-        server = PantsDevContainerServer(config)
+        server = PantsDevContainerServer()
         await server.run()
-    except PowerError as e:
-        print(f"Failed to start server: {e}", file=sys.stderr)
-        sys.exit(1)
     except Exception as e:
-        # Check if this is a connection closed error (expected during shutdown/uninstall)
         error_msg = str(e)
-        if (
-            "Connection closed" in error_msg
-            or "connection closed" in error_msg.lower()
-        ):
-            # Exit silently - expected when power is uninstalled
+        if "connection closed" in error_msg.lower():
             sys.exit(0)
         print(f"Unexpected error: {e}", file=sys.stderr)
         sys.exit(1)

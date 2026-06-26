@@ -183,5 +183,5 @@ devcontainer build --workspace-folder <workspace>
 
 The power sets these environment variables for devcontainer operations:
 
-- `WORKSPACE_FOLDER`: Repository root directory
+- `WORKSPACE_FOLDER`: Set to the `workspace_folder` provided in each tool call
 - `DOCKER_CLI_HINTS`: Set to "false" to suppress Docker hints
