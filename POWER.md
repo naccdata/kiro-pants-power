@@ -13,7 +13,7 @@ author: "NACC Team"
 The Pants DevContainer power eliminates friction in the NACC Flywheel Extensions development workflow by automatically wrapping Pants build system commands with devcontainer execution. Instead of manually managing container lifecycle or remembering wrapper scripts, you can invoke Pants commands directly - the power handles all container management automatically.
 
 This power provides MCP tools organized into four categories:
-- **Pants Commands**: fix, lint, check, test, package
+- **Pants Commands**: fix, lint, check, test, package, tailor
 - **Container Lifecycle**: start, stop, rebuild, exec, shell
 - **Workflow Orchestration**: full_quality_check, pants_workflow
 - **Utilities**: clear_cache
@@ -55,21 +55,21 @@ This power is installed as an MCP server in Kiro:
 
 1. Add the power to your Kiro configuration
 2. The server starts immediately with no startup validation
-3. On first tool call, it validates that:
-   - The provided `workspace_folder` exists and has `.devcontainer/`
+3. Each tool call provides `workspace_folder` and the power validates:
+   - The path exists and has `.devcontainer/`
    - The devcontainer CLI is installed
-4. Components are cached per workspace for subsequent calls
+4. Components are cached per workspace path for efficiency
 
 ### Verification
 
 Test that everything is set up correctly:
 
-```bash
+```
 # Start the container (should succeed)
-# Use the container_start tool
+container_start(workspace_folder="/path/to/repo")
 
 # Verify Pants is installed
-# Use the container_exec tool with command: "pants --version"
+container_exec(workspace_folder="/path/to/repo", command="pants --version")
 
 # Expected output: Pants version 2.29.x or similar
 ```
@@ -239,6 +239,8 @@ pants_test()
 **Common required parameter for all tools:**
 - `workspace_folder` (required, string): Absolute path to the repository root containing `.devcontainer/`
 
+All examples below omit `workspace_folder` for brevity, but it must be provided on every call.
+
 ### Pants Command Tools
 
 #### pants_fix
@@ -311,6 +313,20 @@ pants_test(target="common/test/python::test_identifier")
 ```
 pants_package()
 pants_package(target="apps/gear-identifier::")
+```
+
+#### pants_tailor
+**Purpose:** Generate or update BUILD files for source files
+
+**Parameters:**
+- `target` (optional, string): Pants target specification (default: `"::"`)
+
+**Returns:** Command output and exit code
+
+**Example:**
+```
+pants_tailor()
+pants_tailor(target="src/python::")
 ```
 
 ### Container Lifecycle Tools
