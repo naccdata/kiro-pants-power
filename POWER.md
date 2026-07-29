@@ -71,7 +71,7 @@ container_start(workspace_folder="/path/to/repo")
 # Verify Pants is installed
 container_exec(workspace_folder="/path/to/repo", command="pants --version")
 
-# Expected output: Pants version 2.29.x or similar
+# Expected output: Pants version 2.32.x or similar
 ```
 
 ## Common Workflows
@@ -643,4 +643,4 @@ Available workflow sequences:
 **Package:** `pants-devcontainer-power`
 **Runtime:** Python 3.12
 **DevContainer CLI:** Required (`npm install -g @devcontainers/cli`)
-**Pants Version:** 2.29 (inside devcontainer)
+**Pants Version:** 2.32 (inside devcontainer)
