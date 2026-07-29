@@ -6,6 +6,8 @@ Pants build system tools with automatic devcontainer integration.
 Each tool accepts a workspace_folder parameter that specifies the repository
 root containing .devcontainer/. This avoids startup-time workspace resolution
 issues and works reliably regardless of how the server process is launched.
+
+Migrated to MCP Python SDK v2 (low-level Server API).
 """
 
 import asyncio
@@ -14,9 +16,16 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from mcp.server import Server
+from mcp.server import Server, ServerRequestContext
 from mcp.server.stdio import stdio_server
-from mcp.types import TextContent, Tool
+from mcp.types import (
+    CallToolRequestParams,
+    CallToolResult,
+    ListToolsResult,
+    PaginatedRequestParams,
+    TextContent,
+    Tool,
+)
 
 from src.container_lifecycle import ContainerLifecycle
 from src.container_manager import ContainerManager
@@ -136,11 +145,12 @@ class PantsDevContainerServer:
         # Cache of WorkspaceSession instances keyed by resolved path string
         self._sessions: dict[str, WorkspaceSession] = {}
 
-        # Initialize MCP server
-        self.server = Server("pants-devcontainer-power")
-
-        # Register tools
-        self._register_tools()
+        # Initialize MCP server with v2 constructor-based handler registration
+        self.server = Server(
+            "pants-devcontainer-power",
+            on_list_tools=self._handle_list_tools,
+            on_call_tool=self._handle_call_tool,
+        )
 
     def _get_session(self, workspace_folder: str | None) -> WorkspaceSession:
         """Get or create a WorkspaceSession for the given workspace path.
@@ -178,238 +188,255 @@ class PantsDevContainerServer:
         self._sessions[key] = session
         return session
 
-    def _register_tools(self) -> None:
-        """Register all MCP tools with the server."""
-
-        @self.server.list_tools()
-        async def list_tools() -> list[Tool]:
-            """List all available tools."""
-            return [
-                Tool(
-                    name="pants_fix",
-                    description=TOOL_DESCRIPTIONS["pants_fix"],
-                    inputSchema=_inject_workspace_param(get_pants_fix_schema()),
+    async def _handle_list_tools(
+        self,
+        ctx: ServerRequestContext,
+        params: PaginatedRequestParams | None,
+    ) -> ListToolsResult:
+        """List all available tools."""
+        tools = [
+            Tool(
+                name="pants_fix",
+                description=TOOL_DESCRIPTIONS["pants_fix"],
+                input_schema=_inject_workspace_param(get_pants_fix_schema()),
+            ),
+            Tool(
+                name="pants_lint",
+                description=TOOL_DESCRIPTIONS["pants_lint"],
+                input_schema=_inject_workspace_param(get_pants_lint_schema()),
+            ),
+            Tool(
+                name="pants_check",
+                description=TOOL_DESCRIPTIONS["pants_check"],
+                input_schema=_inject_workspace_param(get_pants_check_schema()),
+            ),
+            Tool(
+                name="pants_test",
+                description=TOOL_DESCRIPTIONS["pants_test"],
+                input_schema=_inject_workspace_param(get_pants_test_schema()),
+            ),
+            Tool(
+                name="pants_package",
+                description=TOOL_DESCRIPTIONS["pants_package"],
+                input_schema=_inject_workspace_param(get_pants_package_schema()),
+            ),
+            Tool(
+                name="pants_tailor",
+                description="Generate or update BUILD files for source files",
+                input_schema=_inject_workspace_param({
+                    "type": "object",
+                    "properties": {
+                        "target": {
+                            "type": "string",
+                            "description": 'Pants target specification (default: "::")',
+                        }
+                    },
+                }),
+            ),
+            Tool(
+                name="container_start",
+                description="Start the devcontainer (idempotent)",
+                input_schema=_inject_workspace_param({
+                    "type": "object",
+                    "properties": {},
+                }),
+            ),
+            Tool(
+                name="container_stop",
+                description="Stop the devcontainer",
+                input_schema=_inject_workspace_param({
+                    "type": "object",
+                    "properties": {},
+                }),
+            ),
+            Tool(
+                name="container_rebuild",
+                description="Rebuild and restart the devcontainer",
+                input_schema=_inject_workspace_param({
+                    "type": "object",
+                    "properties": {},
+                }),
+            ),
+            Tool(
+                name="container_exec",
+                description="Execute arbitrary command in container",
+                input_schema=_inject_workspace_param({
+                    "type": "object",
+                    "properties": {
+                        "command": {
+                            "type": "string",
+                            "description": "Shell command to execute",
+                        }
+                    },
+                    "required": ["command"],
+                }),
+            ),
+            Tool(
+                name="container_shell",
+                description="Provide instructions for opening interactive shell",
+                input_schema=_inject_workspace_param({
+                    "type": "object",
+                    "properties": {},
+                }),
+            ),
+            Tool(
+                name="full_quality_check",
+                description=(
+                    "Run complete quality check workflow "
+                    "(fix \u2192 lint \u2192 check \u2192 test)"
                 ),
-                Tool(
-                    name="pants_lint",
-                    description=TOOL_DESCRIPTIONS["pants_lint"],
-                    inputSchema=_inject_workspace_param(get_pants_lint_schema()),
-                ),
-                Tool(
-                    name="pants_check",
-                    description=TOOL_DESCRIPTIONS["pants_check"],
-                    inputSchema=_inject_workspace_param(get_pants_check_schema()),
-                ),
-                Tool(
-                    name="pants_test",
-                    description=TOOL_DESCRIPTIONS["pants_test"],
-                    inputSchema=_inject_workspace_param(get_pants_test_schema()),
-                ),
-                Tool(
-                    name="pants_package",
-                    description=TOOL_DESCRIPTIONS["pants_package"],
-                    inputSchema=_inject_workspace_param(get_pants_package_schema()),
-                ),
-                Tool(
-                    name="pants_tailor",
-                    description="Generate or update BUILD files for source files",
-                    inputSchema=_inject_workspace_param({
-                        "type": "object",
-                        "properties": {
-                            "target": {
-                                "type": "string",
-                                "description": 'Pants target specification (default: "::")',
-                            }
+                input_schema=_inject_workspace_param({
+                    "type": "object",
+                    "properties": {
+                        "target": {
+                            "type": "string",
+                            "description": (
+                                'Pants target specification (default: "::")'
+                            ),
+                        }
+                    },
+                }),
+            ),
+            Tool(
+                name="pants_workflow",
+                description="Execute custom workflow sequence",
+                input_schema=_inject_workspace_param({
+                    "type": "object",
+                    "properties": {
+                        "workflow": {
+                            "type": "string",
+                            "description": (
+                                'Workflow name '
+                                '("fix-lint", "check-test", "fix-lint-check")'
+                            ),
                         },
-                    }),
-                ),
-                Tool(
-                    name="container_start",
-                    description="Start the devcontainer (idempotent)",
-                    inputSchema=_inject_workspace_param({
-                        "type": "object",
-                        "properties": {},
-                    }),
-                ),
-                Tool(
-                    name="container_stop",
-                    description="Stop the devcontainer",
-                    inputSchema=_inject_workspace_param({
-                        "type": "object",
-                        "properties": {},
-                    }),
-                ),
-                Tool(
-                    name="container_rebuild",
-                    description="Rebuild and restart the devcontainer",
-                    inputSchema=_inject_workspace_param({
-                        "type": "object",
-                        "properties": {},
-                    }),
-                ),
-                Tool(
-                    name="container_exec",
-                    description="Execute arbitrary command in container",
-                    inputSchema=_inject_workspace_param({
-                        "type": "object",
-                        "properties": {
-                            "command": {
-                                "type": "string",
-                                "description": "Shell command to execute",
-                            }
+                        "target": {
+                            "type": "string",
+                            "description": (
+                                'Pants target specification (default: "::")'
+                            ),
                         },
-                        "required": ["command"],
-                    }),
-                ),
-                Tool(
-                    name="container_shell",
-                    description="Provide instructions for opening interactive shell",
-                    inputSchema=_inject_workspace_param({
-                        "type": "object",
-                        "properties": {},
-                    }),
-                ),
-                Tool(
-                    name="full_quality_check",
-                    description=(
-                        "Run complete quality check workflow "
-                        "(fix → lint → check → test)"
-                    ),
-                    inputSchema=_inject_workspace_param({
-                        "type": "object",
-                        "properties": {
-                            "target": {
-                                "type": "string",
-                                "description": (
-                                    'Pants target specification (default: "::")'
-                                ),
-                            }
-                        },
-                    }),
-                ),
-                Tool(
-                    name="pants_workflow",
-                    description="Execute custom workflow sequence",
-                    inputSchema=_inject_workspace_param({
-                        "type": "object",
-                        "properties": {
-                            "workflow": {
-                                "type": "string",
-                                "description": (
-                                    'Workflow name '
-                                    '("fix-lint", "check-test", "fix-lint-check")'
-                                ),
-                            },
-                            "target": {
-                                "type": "string",
-                                "description": (
-                                    'Pants target specification (default: "::")'
-                                ),
-                            },
-                        },
-                        "required": ["workflow"],
-                    }),
-                ),
-                Tool(
-                    name="pants_clear_cache",
-                    description="Clear Pants cache to resolve filesystem issues",
-                    inputSchema=_inject_workspace_param({
-                        "type": "object",
-                        "properties": {},
-                    }),
-                ),
-            ]
+                    },
+                    "required": ["workflow"],
+                }),
+            ),
+            Tool(
+                name="pants_clear_cache",
+                description="Clear Pants cache to resolve filesystem issues",
+                input_schema=_inject_workspace_param({
+                    "type": "object",
+                    "properties": {},
+                }),
+            ),
+        ]
+        return ListToolsResult(tools=tools)
 
-        @self.server.call_tool()
-        async def call_tool(  # noqa: C901
-            name: str, arguments: dict[str, Any]
-        ) -> list[TextContent]:
-            """Handle tool invocation requests."""
-            try:
-                # Extract and validate workspace_folder from arguments
-                workspace_folder = arguments.pop("workspace_folder", None)
-                session = self._get_session(workspace_folder)
+    async def _handle_call_tool(  # noqa: C901
+        self,
+        ctx: ServerRequestContext,
+        params: CallToolRequestParams,
+    ) -> CallToolResult:
+        """Handle tool invocation requests.
 
-                # Route to appropriate handler
-                if name == "pants_fix":
-                    result = session.tool_executor.execute_pants_fix(arguments)
-                    return self._format_command_result(result)
+        In v2, exceptions become opaque protocol errors (-32603) that the model
+        cannot read. We catch all expected errors and return them as
+        CallToolResult(is_error=True) so the model can see and act on them.
+        """
+        try:
+            arguments = dict(params.arguments) if params.arguments else {}
+            name = params.name
 
-                elif name == "pants_lint":
-                    result = session.tool_executor.execute_pants_lint(arguments)
-                    return self._format_command_result(result)
+            # Extract and validate workspace_folder from arguments
+            workspace_folder = arguments.pop("workspace_folder", None)
+            session = self._get_session(workspace_folder)
 
-                elif name == "pants_check":
-                    result = session.tool_executor.execute_pants_check(arguments)
-                    return self._format_command_result(result)
+            # Route to appropriate handler
+            if name == "pants_fix":
+                result = session.tool_executor.execute_pants_fix(arguments)
+                return self._format_command_result(result)
 
-                elif name == "pants_test":
-                    result = session.tool_executor.execute_pants_test(arguments)
-                    return self._format_command_result(result)
+            elif name == "pants_lint":
+                result = session.tool_executor.execute_pants_lint(arguments)
+                return self._format_command_result(result)
 
-                elif name == "pants_package":
-                    result = session.tool_executor.execute_pants_package(arguments)
-                    return self._format_command_result(result)
+            elif name == "pants_check":
+                result = session.tool_executor.execute_pants_check(arguments)
+                return self._format_command_result(result)
 
-                elif name == "pants_tailor":
-                    result = session.pants_commands.pants_tailor(
-                        arguments.get("target")
+            elif name == "pants_test":
+                result = session.tool_executor.execute_pants_test(arguments)
+                return self._format_command_result(result)
+
+            elif name == "pants_package":
+                result = session.tool_executor.execute_pants_package(arguments)
+                return self._format_command_result(result)
+
+            elif name == "pants_tailor":
+                result = session.pants_commands.pants_tailor(
+                    arguments.get("target")
+                )
+                return self._format_command_result(result)
+
+            elif name == "container_start":
+                result = session.container_lifecycle.container_start()
+                return self._format_command_result(result)
+
+            elif name == "container_stop":
+                result = session.container_lifecycle.container_stop()
+                return self._format_command_result(result)
+
+            elif name == "container_rebuild":
+                result = session.container_lifecycle.container_rebuild()
+                return self._format_command_result(result)
+
+            elif name == "container_exec":
+                command = arguments.get("command")
+                if not command:
+                    raise ValidationError(
+                        "Parameter 'command' is required for container_exec"
                     )
-                    return self._format_command_result(result)
+                result = session.container_lifecycle.container_exec(command)
+                return self._format_command_result(result)
 
-                elif name == "container_start":
-                    result = session.container_lifecycle.container_start()
-                    return self._format_command_result(result)
+            elif name == "container_shell":
+                result = session.container_lifecycle.container_shell()
+                return self._format_command_result(result)
 
-                elif name == "container_stop":
-                    result = session.container_lifecycle.container_stop()
-                    return self._format_command_result(result)
+            elif name == "full_quality_check":
+                workflow_result = session.workflow_tools.full_quality_check(
+                    arguments.get("target")
+                )
+                return self._format_workflow_result(workflow_result)
 
-                elif name == "container_rebuild":
-                    result = session.container_lifecycle.container_rebuild()
-                    return self._format_command_result(result)
-
-                elif name == "container_exec":
-                    command = arguments.get("command")
-                    if not command:
-                        raise ValidationError(
-                            "Parameter 'command' is required for container_exec"
-                        )
-                    result = session.container_lifecycle.container_exec(command)
-                    return self._format_command_result(result)
-
-                elif name == "container_shell":
-                    result = session.container_lifecycle.container_shell()
-                    return self._format_command_result(result)
-
-                elif name == "full_quality_check":
-                    workflow_result = session.workflow_tools.full_quality_check(
-                        arguments.get("target")
+            elif name == "pants_workflow":
+                workflow = arguments.get("workflow")
+                if not workflow:
+                    raise ValidationError(
+                        "Parameter 'workflow' is required for pants_workflow"
                     )
-                    return self._format_workflow_result(workflow_result)
+                workflow_result = session.workflow_tools.pants_workflow(
+                    workflow, arguments.get("target")
+                )
+                return self._format_workflow_result(workflow_result)
 
-                elif name == "pants_workflow":
-                    workflow = arguments.get("workflow")
-                    if not workflow:
-                        raise ValidationError(
-                            "Parameter 'workflow' is required for pants_workflow"
-                        )
-                    workflow_result = session.workflow_tools.pants_workflow(
-                        workflow, arguments.get("target")
-                    )
-                    return self._format_workflow_result(workflow_result)
+            elif name == "pants_clear_cache":
+                result = session.pants_commands.pants_clear_cache()
+                return self._format_command_result(result)
 
-                elif name == "pants_clear_cache":
-                    result = session.pants_commands.pants_clear_cache()
-                    return self._format_command_result(result)
+            else:
+                return CallToolResult(
+                    content=[TextContent(type="text", text=f"Unknown tool: {name}")],
+                    is_error=True,
+                )
 
-                else:
-                    raise ValueError(f"Unknown tool: {name}")
-
-            except ValidationError as e:
-                return [TextContent(type="text", text=format_validation_error(e))]
-            except ContainerError as e:
-                return [
+        except ValidationError as e:
+            return CallToolResult(
+                content=[TextContent(type="text", text=format_validation_error(e))],
+                is_error=True,
+            )
+        except ContainerError as e:
+            return CallToolResult(
+                content=[
                     TextContent(
                         type="text",
                         text=(
@@ -418,23 +445,38 @@ class PantsDevContainerServer:
                             "contains a .devcontainer/ directory."
                         ),
                     )
-                ]
-            except CommandExecutionError as e:
-                return [
+                ],
+                is_error=True,
+            )
+        except CommandExecutionError as e:
+            return CallToolResult(
+                content=[
                     TextContent(
                         type="text",
                         text=format_command_execution_error(e),
                     )
-                ]
-            except PowerError as e:
-                return [TextContent(type="text", text=f"Power error: {e!s}")]
-            except Exception as e:
-                return [TextContent(type="text", text=f"Unexpected error: {e!s}")]
+                ],
+                is_error=True,
+            )
+        except PowerError as e:
+            return CallToolResult(
+                content=[TextContent(type="text", text=f"Power error: {e!s}")],
+                is_error=True,
+            )
+        except Exception as e:
+            return CallToolResult(
+                content=[TextContent(type="text", text=f"Unexpected error: {e!s}")],
+                is_error=True,
+            )
 
-    def _format_command_result(self, result: CommandResult) -> list[TextContent]:
-        """Format CommandResult as MCP TextContent."""
+    def _format_command_result(self, result: CommandResult) -> CallToolResult:
+        """Format CommandResult as MCP CallToolResult."""
         if result.success:
             text = format_success(result)
+            return CallToolResult(
+                content=[TextContent(type="text", text=text)],
+                is_error=False,
+            )
         else:
             text = format_command_execution_error(
                 CommandExecutionError(f"Command failed: {result.command}"),
@@ -443,10 +485,13 @@ class PantsDevContainerServer:
                 output=result.output,
                 result=result,
             )
-        return [TextContent(type="text", text=text)]
+            return CallToolResult(
+                content=[TextContent(type="text", text=text)],
+                is_error=True,
+            )
 
-    def _format_workflow_result(self, result: WorkflowResult) -> list[TextContent]:
-        """Format WorkflowResult as MCP TextContent."""
+    def _format_workflow_result(self, result: WorkflowResult) -> CallToolResult:
+        """Format WorkflowResult as MCP CallToolResult."""
         text = result.summary
 
         if result.results:
@@ -464,7 +509,11 @@ class PantsDevContainerServer:
                 if step_result.output:
                     text += f"Output:\n{step_result.output}\n"
 
-        return [TextContent(type="text", text=text)]
+        is_error = not result.success if hasattr(result, "success") else bool(result.failed_step)
+        return CallToolResult(
+            content=[TextContent(type="text", text=text)],
+            is_error=is_error,
+        )
 
     async def run(self) -> None:
         """Run the MCP server using stdio transport."""

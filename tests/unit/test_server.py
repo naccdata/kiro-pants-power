@@ -1,7 +1,7 @@
 """Unit tests for the MCP server implementation."""
 
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -105,9 +105,8 @@ class TestPantsDevContainerServer:
 
     def test_server_creates_mcp_server_with_correct_name(self) -> None:
         """Test server creates MCP Server with expected name."""
-        with patch("src.server.Server") as mock_server_class:
-            PantsDevContainerServer()
-            mock_server_class.assert_called_once_with("pants-devcontainer-power")
+        server = PantsDevContainerServer()
+        assert server.server.name == "pants-devcontainer-power"
 
     def test_get_session_returns_cached_session(self, tmp_path: Path) -> None:
         """Test that _get_session caches and reuses sessions."""
@@ -172,10 +171,11 @@ class TestServerFormatting:
 
         formatted = server._format_command_result(result)
 
-        assert len(formatted) == 1
-        assert formatted[0].type == "text"
-        assert "Success output" in formatted[0].text
-        assert "pants test ::" in formatted[0].text
+        assert formatted.is_error is False
+        assert len(formatted.content) == 1
+        assert formatted.content[0].type == "text"
+        assert "Success output" in formatted.content[0].text
+        assert "pants test ::" in formatted.content[0].text
 
     def test_format_command_result_failure(self, server: PantsDevContainerServer) -> None:
         """Test _format_command_result formats failed results."""
@@ -189,11 +189,12 @@ class TestServerFormatting:
 
         formatted = server._format_command_result(result)
 
-        assert len(formatted) == 1
-        assert formatted[0].type == "text"
+        assert formatted.is_error is True
+        assert len(formatted.content) == 1
+        assert formatted.content[0].type == "text"
         assert (
-            "Command execution failed" in formatted[0].text
-            or "Exit code: 1" in formatted[0].text
+            "Command execution failed" in formatted.content[0].text
+            or "Exit code: 1" in formatted.content[0].text
         )
 
     def test_format_workflow_result_success(self, server: PantsDevContainerServer) -> None:
@@ -211,10 +212,10 @@ class TestServerFormatting:
 
         formatted = server._format_workflow_result(result)
 
-        assert len(formatted) == 1
-        assert formatted[0].type == "text"
-        assert "Workflow completed successfully" in formatted[0].text
-        assert "fix, lint, check" in formatted[0].text
+        assert len(formatted.content) == 1
+        assert formatted.content[0].type == "text"
+        assert "Workflow completed successfully" in formatted.content[0].text
+        assert "fix, lint, check" in formatted.content[0].text
 
     def test_format_workflow_result_failure(self, server: PantsDevContainerServer) -> None:
         """Test _format_workflow_result formats failed workflow."""
@@ -230,10 +231,11 @@ class TestServerFormatting:
 
         formatted = server._format_workflow_result(result)
 
-        assert len(formatted) == 1
-        assert formatted[0].type == "text"
-        assert "Workflow failed at step: lint" in formatted[0].text
-        assert "Steps completed before failure: fix" in formatted[0].text
+        assert formatted.is_error is True
+        assert len(formatted.content) == 1
+        assert formatted.content[0].type == "text"
+        assert "Workflow failed at step: lint" in formatted.content[0].text
+        assert "Steps completed before failure: fix" in formatted.content[0].text
 
     def test_format_workflow_result_includes_step_details(
         self, server: PantsDevContainerServer
@@ -251,7 +253,7 @@ class TestServerFormatting:
 
         formatted = server._format_workflow_result(result)
 
-        text = formatted[0].text
+        text = formatted.content[0].text
         assert "--- Step Details ---" in text
         assert "Step: fix" in text
         assert "Step: lint" in text

@@ -5,7 +5,7 @@ description = "MCP tools for Pants build system with devcontainer integration"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "mcp>=0.9.0",
+    "mcp>=2.0.0,<3",
     "hypothesis>=6.0.0",
     "pytest>=7.0.0",
     "pytest-asyncio>=0.21.0",
