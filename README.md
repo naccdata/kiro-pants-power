@@ -71,6 +71,18 @@ Every tool requires a `workspace_folder` parameter — the absolute path to the 
 
 ## Tools Reference
 
+### Target vs Intent parameters
+
+The `pants_fix`, `pants_lint`, `pants_check`, `pants_test`, and `pants_package` tools accept intent-based parameters (`scope`/`path`/`recursive`, plus `test_filter` for `pants_test`). These are the preferred interface. The legacy `target` parameter still works but is **deprecated** — use the intent parameters instead.
+
+| Pants target        | Intent parameters                                      |
+|---------------------|--------------------------------------------------------|
+| `::`                | `scope="all"`                                          |
+| `src/tests::`       | `scope="directory", path="src/tests", recursive=true`  |
+| `src/tests:`        | `scope="directory", path="src/tests", recursive=false` |
+| `src/test.py`       | `scope="file", path="src/test.py"`                     |
+| `:: -k test_auth`   | `scope="all", test_filter="test_auth"`                 |
+
 ### Pants Command Tools
 
 #### pants_fix
@@ -78,18 +90,21 @@ Every tool requires a `workspace_folder` parameter — the absolute path to the 
 Format code and auto-fix linting issues.
 
 **Parameters:**
-- `target` (optional): Pants target specification (default: `::`)
+- `scope` (optional): What to operate on — `all`, `directory`, or `file` (default: `all`)
+- `path` (optional): Path to directory or file (required for `directory` and `file` scopes)
+- `recursive` (optional): Include subdirectories (only for `directory` scope, default: `true`)
+- `target` (optional): **DEPRECATED** — use scope/path/recursive instead. Pants target specification (e.g., `::`, `src/tests::`, `src/test.py`)
 
 **Examples:**
 ```
 Fix all code in the repository
-> Use pants_fix
+> Use pants_fix with scope "all"
 
 Fix code in a specific directory
-> Use pants_fix with target "src/python::"
+> Use pants_fix with scope "directory" and path "src/python"
 
 Fix a specific file
-> Use pants_fix with target "src/python/myapp.py"
+> Use pants_fix with scope "file" and path "src/python/myapp.py"
 ```
 
 #### pants_lint
@@ -97,15 +112,18 @@ Fix a specific file
 Run linters on code.
 
 **Parameters:**
-- `target` (optional): Pants target specification (default: `::`)
+- `scope` (optional): What to operate on — `all`, `directory`, or `file` (default: `all`)
+- `path` (optional): Path to directory or file (required for `directory` and `file` scopes)
+- `recursive` (optional): Include subdirectories (only for `directory` scope, default: `true`)
+- `target` (optional): **DEPRECATED** — use scope/path/recursive instead. Pants target specification (e.g., `::`, `src/tests::`, `src/test.py`)
 
 **Examples:**
 ```
 Lint all code
-> Use pants_lint
+> Use pants_lint with scope "all"
 
 Lint specific directory
-> Use pants_lint with target "src/python::"
+> Use pants_lint with scope "directory" and path "src/python"
 ```
 
 #### pants_check
@@ -113,15 +131,18 @@ Lint specific directory
 Run type checking with mypy.
 
 **Parameters:**
-- `target` (optional): Pants target specification (default: `::`)
+- `scope` (optional): What to operate on — `all`, `directory`, or `file` (default: `all`)
+- `path` (optional): Path to directory or file (required for `directory` and `file` scopes)
+- `recursive` (optional): Include subdirectories (only for `directory` scope, default: `true`)
+- `target` (optional): **DEPRECATED** — use scope/path/recursive instead. Pants target specification (e.g., `::`, `src/tests::`, `src/test.py`)
 
 **Examples:**
 ```
 Type check all code
-> Use pants_check
+> Use pants_check with scope "all"
 
 Type check specific directory
-> Use pants_check with target "src/python::"
+> Use pants_check with scope "directory" and path "src/python"
 ```
 
 #### pants_test
@@ -129,18 +150,25 @@ Type check specific directory
 Run tests.
 
 **Parameters:**
-- `target` (optional): Pants target specification (default: `::`)
+- `scope` (optional): What to operate on — `all`, `directory`, or `file` (default: `all`)
+- `path` (optional): Path to directory or file (required for `directory` and `file` scopes)
+- `recursive` (optional): Include subdirectories (only for `directory` scope, default: `true`)
+- `test_filter` (optional): Run only tests matching this pytest-style pattern (e.g., `test_create`, `test_create or test_update`, `not test_slow`)
+- `target` (optional): **DEPRECATED** — use scope/path/recursive instead. Pants target specification (e.g., `::`, `src/tests::`, `src/test.py`)
 
 **Examples:**
 ```
 Run all tests
-> Use pants_test
+> Use pants_test with scope "all"
 
 Run tests in specific directory
-> Use pants_test with target "tests/unit::"
+> Use pants_test with scope "directory" and path "tests/unit"
 
 Run specific test file
-> Use pants_test with target "tests/unit/test_myapp.py"
+> Use pants_test with scope "file" and path "tests/unit/test_myapp.py"
+
+Run tests matching a filter
+> Use pants_test with scope "all" and test_filter "test_login"
 ```
 
 #### pants_package
@@ -148,15 +176,18 @@ Run specific test file
 Build packages.
 
 **Parameters:**
-- `target` (optional): Pants target specification (default: `::`)
+- `scope` (optional): What to operate on — `all`, `directory`, or `file` (default: `all`)
+- `path` (optional): Path to directory or file (required for `directory` and `file` scopes)
+- `recursive` (optional): Include subdirectories (only for `directory` scope, default: `true`)
+- `target` (optional): **DEPRECATED** — use scope/path/recursive instead. Pants target specification (e.g., `::`, `src/tests::`, `src/test.py`)
 
 **Examples:**
 ```
 Package all targets
-> Use pants_package
+> Use pants_package with scope "all"
 
-Package specific target
-> Use pants_package with target "src/python:myapp"
+Package specific directory
+> Use pants_package with scope "directory" and path "src/python"
 ```
 
 ### Container Lifecycle Tools

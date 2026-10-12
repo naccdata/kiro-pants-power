@@ -19,7 +19,7 @@ This is non-negotiable for consistent dependency resolution and environment isol
 
 ## Build System
 
-- **Pants v2.29**: Modern build system for Python monorepos and multi-language projects
+- **Pants**: Modern build system for Python monorepos and multi-language projects. The power does not pin a version; it runs whatever Pants is installed in the consumer's devcontainer (2.29 is the version currently used in the NACC devcontainer). Run `pants --version` to check.
 - **DevContainer CLI**: Development container management via `@devcontainers/cli` npm package
 - **Docker**: Container runtime for devcontainer execution
 

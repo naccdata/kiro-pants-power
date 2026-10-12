@@ -19,9 +19,22 @@
             "type": "string",
             "description": "Absolute path to the repository root containing .devcontainer/"
           },
+          "scope": {
+            "type": "string",
+            "enum": ["all", "directory", "file"],
+            "description": "What to operate on: 'all' runs on all code recursively, 'directory' runs on a specific directory, 'file' runs on a specific file"
+          },
+          "path": {
+            "type": "string",
+            "description": "Path to directory or file (required for 'directory' and 'file' scopes). Examples: 'src/tests', 'src/tests/test_auth.py'"
+          },
+          "recursive": {
+            "type": "boolean",
+            "description": "Include subdirectories when operating on a directory (only applies to 'directory' scope, default: true)"
+          },
           "target": {
             "type": "string",
-            "description": "Pants target specification (default: '::')"
+            "description": "DEPRECATED: Use scope/path/recursive instead. Pants target specification (e.g., '::', 'src/tests::', 'src/test.py')"
           }
         },
         "required": ["workspace_folder"]
@@ -37,9 +50,22 @@
             "type": "string",
             "description": "Absolute path to the repository root containing .devcontainer/"
           },
+          "scope": {
+            "type": "string",
+            "enum": ["all", "directory", "file"],
+            "description": "What to operate on: 'all' runs on all code recursively, 'directory' runs on a specific directory, 'file' runs on a specific file"
+          },
+          "path": {
+            "type": "string",
+            "description": "Path to directory or file (required for 'directory' and 'file' scopes). Examples: 'src/tests', 'src/tests/test_auth.py'"
+          },
+          "recursive": {
+            "type": "boolean",
+            "description": "Include subdirectories when operating on a directory (only applies to 'directory' scope, default: true)"
+          },
           "target": {
             "type": "string",
-            "description": "Pants target specification (default: '::')"
+            "description": "DEPRECATED: Use scope/path/recursive instead. Pants target specification (e.g., '::', 'src/tests::', 'src/test.py')"
           }
         },
         "required": ["workspace_folder"]
@@ -55,9 +81,22 @@
             "type": "string",
             "description": "Absolute path to the repository root containing .devcontainer/"
           },
+          "scope": {
+            "type": "string",
+            "enum": ["all", "directory", "file"],
+            "description": "What to operate on: 'all' runs on all code recursively, 'directory' runs on a specific directory, 'file' runs on a specific file"
+          },
+          "path": {
+            "type": "string",
+            "description": "Path to directory or file (required for 'directory' and 'file' scopes). Examples: 'src/tests', 'src/tests/test_auth.py'"
+          },
+          "recursive": {
+            "type": "boolean",
+            "description": "Include subdirectories when operating on a directory (only applies to 'directory' scope, default: true)"
+          },
           "target": {
             "type": "string",
-            "description": "Pants target specification (default: '::')"
+            "description": "DEPRECATED: Use scope/path/recursive instead. Pants target specification (e.g., '::', 'src/tests::', 'src/test.py')"
           }
         },
         "required": ["workspace_folder"]
@@ -73,9 +112,26 @@
             "type": "string",
             "description": "Absolute path to the repository root containing .devcontainer/"
           },
+          "scope": {
+            "type": "string",
+            "enum": ["all", "directory", "file"],
+            "description": "What to operate on: 'all' runs on all code recursively, 'directory' runs on a specific directory, 'file' runs on a specific file"
+          },
+          "path": {
+            "type": "string",
+            "description": "Path to directory or file (required for 'directory' and 'file' scopes). Examples: 'src/tests', 'src/tests/test_auth.py'"
+          },
+          "recursive": {
+            "type": "boolean",
+            "description": "Include subdirectories when operating on a directory (only applies to 'directory' scope, default: true)"
+          },
+          "test_filter": {
+            "type": "string",
+            "description": "Run only tests matching this name pattern (uses pytest-style filtering). Examples: 'test_create', 'test_create or test_update', 'not test_slow'"
+          },
           "target": {
             "type": "string",
-            "description": "Pants target specification (default: '::')"
+            "description": "DEPRECATED: Use scope/path/recursive instead. Pants target specification (e.g., '::', 'src/tests::', 'src/test.py')"
           }
         },
         "required": ["workspace_folder"]
@@ -91,9 +147,22 @@
             "type": "string",
             "description": "Absolute path to the repository root containing .devcontainer/"
           },
+          "scope": {
+            "type": "string",
+            "enum": ["all", "directory", "file"],
+            "description": "What to operate on: 'all' runs on all code recursively, 'directory' runs on a specific directory, 'file' runs on a specific file"
+          },
+          "path": {
+            "type": "string",
+            "description": "Path to directory or file (required for 'directory' and 'file' scopes). Examples: 'src/tests', 'src/tests/test_auth.py'"
+          },
+          "recursive": {
+            "type": "boolean",
+            "description": "Include subdirectories when operating on a directory (only applies to 'directory' scope, default: true)"
+          },
           "target": {
             "type": "string",
-            "description": "Pants target specification (default: '::')"
+            "description": "DEPRECATED: Use scope/path/recursive instead. Pants target specification (e.g., '::', 'src/tests::', 'src/test.py')"
           }
         },
         "required": ["workspace_folder"]

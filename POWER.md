@@ -68,10 +68,9 @@ Test that everything is set up correctly:
 # Start the container (should succeed)
 container_start(workspace_folder="/path/to/repo")
 
-# Verify Pants is installed
+# Verify Pants is installed — run `pants --version` to see the
+# version installed in your devcontainer (for example, 2.29)
 container_exec(workspace_folder="/path/to/repo", command="pants --version")
-
-# Expected output: Pants version 2.32.x or similar
 ```
 
 ## Common Workflows
@@ -241,78 +240,113 @@ pants_test()
 
 All examples below omit `workspace_folder` for brevity, but it must be provided on every call.
 
+### Target vs Intent parameters
+
+The `pants_fix`, `pants_lint`, `pants_check`, `pants_test`, and `pants_package`
+tools accept intent-based parameters (`scope`/`path`/`recursive`, plus
+`test_filter` for `pants_test`). These are the preferred interface. The legacy
+`target` parameter still works but is **deprecated** — use the intent parameters
+instead.
+
+If you are migrating from raw Pants target syntax, this is the equivalent:
+
+| Pants target        | Intent parameters                                      |
+|---------------------|--------------------------------------------------------|
+| `::`                | `scope="all"`                                          |
+| `src/tests::`       | `scope="directory", path="src/tests", recursive=true`  |
+| `src/tests:`        | `scope="directory", path="src/tests", recursive=false` |
+| `src/test.py`       | `scope="file", path="src/test.py"`                     |
+| `:: -k test_auth`   | `scope="all", test_filter="test_auth"`                 |
+
 ### Pants Command Tools
 
 #### pants_fix
 **Purpose:** Format code and auto-fix linting issues
 
-**Parameters:**
-- `target` (optional, string): Pants target specification
-  - Default: `"::"` (all targets)
-  - Examples: `"common/src/python::"`, `"apps/gear-identifier:gear"`
+**Parameters (intent-based, preferred):**
+- `scope` (optional, string): What to operate on — `"all"`, `"directory"`, or `"file"` (default: `"all"`)
+- `path` (optional, string): Path to directory or file (required for `"directory"` and `"file"` scopes)
+- `recursive` (optional, boolean): Include subdirectories (only for `"directory"` scope, default: `true`)
+- `target` (optional, string): **DEPRECATED** — use scope/path/recursive instead. Pants target specification (e.g., `"::"`, `"src/tests::"`, `"src/test.py"`)
 
 **Returns:** Command output and exit code
 
 **Example:**
 ```
-pants_fix()
-pants_fix(target="common/src/python::")
+pants_fix(scope="all")
+pants_fix(scope="directory", path="common/src/python", recursive=true)
+pants_fix(scope="file", path="common/src/python/myapp.py")
 ```
 
 #### pants_lint
 **Purpose:** Run linters on code (ruff, black, isort)
 
-**Parameters:**
-- `target` (optional, string): Pants target specification (default: `"::"`)
+**Parameters (intent-based, preferred):**
+- `scope` (optional, string): What to operate on — `"all"`, `"directory"`, or `"file"` (default: `"all"`)
+- `path` (optional, string): Path to directory or file (required for `"directory"` and `"file"` scopes)
+- `recursive` (optional, boolean): Include subdirectories (only for `"directory"` scope, default: `true`)
+- `target` (optional, string): **DEPRECATED** — use scope/path/recursive instead. Pants target specification (e.g., `"::"`, `"src/tests::"`, `"src/test.py"`)
 
 **Returns:** Command output and exit code
 
 **Example:**
 ```
-pants_lint()
-pants_lint(target="common/test/python::")
+pants_lint(scope="all")
+pants_lint(scope="directory", path="common/test/python", recursive=true)
 ```
 
 #### pants_check
 **Purpose:** Run type checking with mypy
 
-**Parameters:**
-- `target` (optional, string): Pants target specification (default: `"::"`)
+**Parameters (intent-based, preferred):**
+- `scope` (optional, string): What to operate on — `"all"`, `"directory"`, or `"file"` (default: `"all"`)
+- `path` (optional, string): Path to directory or file (required for `"directory"` and `"file"` scopes)
+- `recursive` (optional, boolean): Include subdirectories (only for `"directory"` scope, default: `true`)
+- `target` (optional, string): **DEPRECATED** — use scope/path/recursive instead. Pants target specification (e.g., `"::"`, `"src/tests::"`, `"src/test.py"`)
 
 **Returns:** Command output and exit code
 
 **Example:**
 ```
-pants_check()
-pants_check(target="common/src/python::")
+pants_check(scope="all")
+pants_check(scope="directory", path="common/src/python", recursive=true)
 ```
 
 #### pants_test
 **Purpose:** Run tests with pytest
 
-**Parameters:**
-- `target` (optional, string): Pants target specification (default: `"::"`)
+**Parameters (intent-based, preferred):**
+- `scope` (optional, string): What to operate on — `"all"`, `"directory"`, or `"file"` (default: `"all"`)
+- `path` (optional, string): Path to directory or file (required for `"directory"` and `"file"` scopes)
+- `recursive` (optional, boolean): Include subdirectories (only for `"directory"` scope, default: `true`)
+- `test_filter` (optional, string): Run only tests matching this pytest-style pattern (e.g., `"test_create"`, `"test_create or test_update"`, `"not test_slow"`)
+- `target` (optional, string): **DEPRECATED** — use scope/path/recursive instead. Pants target specification (e.g., `"::"`, `"src/tests::"`, `"src/test.py"`)
 
 **Returns:** Command output and exit code
 
 **Example:**
 ```
-pants_test()
-pants_test(target="common/test/python::test_identifier")
+pants_test(scope="all")
+pants_test(scope="directory", path="common/test/python", recursive=true)
+pants_test(scope="file", path="common/test/python/test_identifier.py")
+pants_test(scope="all", test_filter="test_authentication")
 ```
 
 #### pants_package
 **Purpose:** Build distributable packages
 
-**Parameters:**
-- `target` (optional, string): Pants target specification (default: `"::"`)
+**Parameters (intent-based, preferred):**
+- `scope` (optional, string): What to operate on — `"all"`, `"directory"`, or `"file"` (default: `"all"`)
+- `path` (optional, string): Path to directory or file (required for `"directory"` and `"file"` scopes)
+- `recursive` (optional, boolean): Include subdirectories (only for `"directory"` scope, default: `true`)
+- `target` (optional, string): **DEPRECATED** — use scope/path/recursive instead. Pants target specification (e.g., `"::"`, `"src/tests::"`, `"src/test.py"`)
 
 **Returns:** Command output and exit code
 
 **Example:**
 ```
-pants_package()
-pants_package(target="apps/gear-identifier::")
+pants_package(scope="all")
+pants_package(scope="directory", path="apps/gear-identifier", recursive=true)
 ```
 
 #### pants_tailor
@@ -643,4 +677,4 @@ Available workflow sequences:
 **Package:** `pants-devcontainer-power`
 **Runtime:** Python 3.12
 **DevContainer CLI:** Required (`npm install -g @devcontainers/cli`)
-**Pants Version:** 2.32 (inside devcontainer)
+**Pants Version:** Provided by the devcontainer (run `pants --version` to check)
