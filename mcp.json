@@ -1,6 +1,8 @@
 {
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
   "mcpServers": {
     "pants-devcontainer-power": {
+      "type": "stdio",
       "command": "uvx",
       "args": ["--from", "git+https://github.com/naccdata/kiro-pants-power", "pants-devcontainer-power"]
     }

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "pants-devcontainer-power",
+  "version": "0.2.0",
+  "description": "MCP tools for Pants build system with devcontainer integration",
+  "author": {
+    "name": "NACC Team"
+  },
+  "keywords": ["pants", "build", "devcontainer", "workflow", "monorepo", "nacc"],
+  "repository": "https://github.com/naccdata/kiro-pants-power",
+  "license": "MPL-2.0"
+}
