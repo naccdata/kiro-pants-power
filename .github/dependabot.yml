@@ -1,7 +1,9 @@
 version: 2
 updates:
   # Python dependencies managed by uv (pyproject.toml + uv.lock).
-  - package-ecosystem: "pip"
+  # Use the native "uv" ecosystem so Dependabot updates uv.lock directly.
+  # The "pip" ecosystem does not update uv.lock and can open duplicate PRs.
+  - package-ecosystem: "uv"
     directory: "/"
     schedule:
       interval: "weekly"
