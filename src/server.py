@@ -524,15 +524,27 @@ class PantsDevContainerServer:
 
 
 async def async_main() -> None:
-    """Async main entry point for the MCP server."""
+    """Async main entry point for the MCP server.
+
+    A clean client disconnect (the MCP client closing the stdio pipe) surfaces
+    as a "connection closed" error and is a normal shutdown, so we exit 0
+    without noise. Any other exception is a genuine startup or runtime failure:
+    we log it with a full traceback to stderr and exit non-zero so the failure
+    is visible to whoever launched the server, instead of vanishing silently.
+    """
     try:
         server = PantsDevContainerServer()
         await server.run()
     except Exception as e:
         error_msg = str(e)
         if "connection closed" in error_msg.lower():
+            # Normal client disconnect - not an error.
             sys.exit(0)
-        print(f"Unexpected error: {e}", file=sys.stderr)
+        # Real failure: make it visible with a traceback rather than a
+        # one-line message or (worse) a silent exit that looks healthy.
+        logging.basicConfig(level=logging.ERROR)
+        logger.exception("Pants DevContainer MCP server failed to run")
+        print(f"pants-devcontainer-power failed: {e}", file=sys.stderr)
         sys.exit(1)
 
 

@@ -501,6 +501,52 @@ pants_clear_cache()
 
 ## Troubleshooting
 
+### Power / MCP Server Issues
+
+#### Problem: "Tool '<name>' does not exist on server 'power-kiro-pants-power-pants-devcontainer-power'"
+
+This is the most common first failure, and the message is misleading — the tool
+*does* exist. You will see it even right after `activate` listed the tool.
+
+**Cause:** The power's MCP server is not running, so there are no live tools to
+call. `activate` lists tools from the power's static manifest (`power.json`), so
+it succeeds and shows all tools regardless of whether the server is up. The
+actual tool call (`use`) is dispatched to the live server, which fails when the
+server is disabled or has not started.
+
+The usual reason is that the server is **disabled in MCP configuration**. Note
+that a *missing* config file does not disable the power — the power is enabled by
+default — so this only applies when an entry has been written explicitly.
+
+**What NOT to do:** Do not re-run `activate` and retry the same call in a loop.
+Re-activating always succeeds (it reads the static manifest) and the retry always
+fails the same way. Activation is not the problem.
+
+**Solution:**
+1. Check for an explicit disable in MCP config. The server key is
+   `power-kiro-pants-power-pants-devcontainer-power`. Look in, in order of
+   precedence:
+   - Workspace: `.kiro/settings/mcp.json`
+   - User: `~/.kiro/settings/mcp.json`
+
+   A disabling entry looks like:
+   ```json
+   {
+     "mcpServers": {
+       "power-kiro-pants-power-pants-devcontainer-power": { "disabled": true }
+     }
+   }
+   ```
+2. Re-enable it by setting `"disabled": false` or removing the entry. In Kiro you
+   can also open the MCP Server view and toggle the server back on.
+3. If no disable entry exists, the server failed to start. Launch it directly to
+   see the error (it will now print a traceback to stderr on failure):
+   ```bash
+   uvx --from git+https://github.com/naccdata/kiro-pants-power pants-devcontainer-power
+   ```
+   Common startup causes: `uvx`/`uv` not installed, or no network access to fetch
+   the package from git.
+
 ### Container Issues
 
 #### Problem: "DevContainer CLI not found"
