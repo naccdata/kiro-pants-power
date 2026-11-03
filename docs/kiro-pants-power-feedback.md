@@ -143,3 +143,63 @@ The power significantly improved the development workflow by:
 ## Conclusion
 
 The kiro-pants-power is production-ready and highly valuable. The suggested improvements are enhancements that would make an already great tool even better. The core functionality is solid and reliable.
+
+---
+
+## Kiro Runtime Feedback (November 3, 2026)
+
+### Issue: Misleading error when the power's MCP server is disabled or down
+
+**Status**: Needs a fix in the Kiro power runtime (not fixable in this repo)
+
+**Symptom**: An agent follows the documented flow — activate the power, read the
+tool list, call a tool — and every tool call fails with:
+
+```
+Tool 'pants_test' does not exist on server 'power-kiro-pants-power-pants-devcontainer-power'.
+You must call action="activate" with powerName="kiro-pants-power" first to learn
+about available tools and their parameters.
+```
+
+The message is wrong-footed in two ways: the tool *does* exist, and the agent
+*did* already activate. Agents tend to react by re-activating and retrying in a
+loop, which never succeeds.
+
+**Root cause**: `activate` lists tools from the power's static manifest
+(`power.json`), so it succeeds and shows all tools regardless of whether the
+server is running. The actual tool call (`use`) is dispatched to the live MCP
+server. When that server is disabled (an explicit `"disabled": true` entry for
+`power-kiro-pants-power-pants-devcontainer-power` in a `.kiro/settings/mcp.json`)
+or has failed to start, there are no live tools, and the runtime reports "Tool
+does not exist" instead of "the server is disabled / not running."
+
+Note: a *missing* `.kiro/settings/mcp.json` does not disable the power — powers
+are enabled by default. The disabled state only arises from an explicit entry.
+
+**Suggested fix (Kiro runtime)**: When a `use` call targets a power whose server
+is disabled or has not started, return an error that says so and points at the
+config key and file, e.g.:
+
+```
+Server 'power-kiro-pants-power-pants-devcontainer-power' is disabled in
+.kiro/settings/mcp.json. Re-enable it (set "disabled": false or remove the entry)
+before calling its tools.
+```
+
+Distinguishing "tool genuinely not found" from "server disabled/unreachable"
+would stop the activate-retry loop and save significant debugging time.
+
+### Related changes made in this repo
+
+These are the parts we *could* fix here (shipped on branch
+`fix/disabled-server-diagnosability`):
+
+- **`POWER.md`**: Added a "Power / MCP Server Issues" troubleshooting entry that
+  names the misleading message, explains the activate-vs-use mismatch, tells
+  agents not to loop on re-activating, and documents how to find and clear the
+  `"disabled": true` entry (or launch the server directly to see a startup
+  error).
+- **`src/server.py`**: `async_main` no longer exits silently on a real failure.
+  A clean client disconnect still exits 0 quietly, but any genuine
+  startup/runtime error is logged with a full traceback to stderr and exits
+  non-zero, so a failed launch is visible rather than looking healthy.

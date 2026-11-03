@@ -13,7 +13,12 @@ from src.models import (
     ValidationError,
     WorkflowResult,
 )
-from src.server import PantsDevContainerServer, WorkspaceSession, _inject_workspace_param
+from src.server import (
+    PantsDevContainerServer,
+    WorkspaceSession,
+    _inject_workspace_param,
+    async_main,
+)
 
 
 class TestInjectWorkspaceParam:
@@ -260,3 +265,46 @@ class TestServerFormatting:
         assert "Command: pants fix ::" in text
         assert "Command: pants lint ::" in text
         assert "Exit code: 0" in text
+
+
+class TestAsyncMain:
+    """Test suite for async_main entry-point error handling.
+
+    These guard the diagnosability fix: a clean client disconnect must exit 0
+    silently, while any real startup/runtime failure must be made visible
+    (non-zero exit + message on stderr) rather than vanishing.
+    """
+
+    @pytest.mark.asyncio
+    async def test_clean_disconnect_exits_zero_silently(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """A 'connection closed' error is a normal shutdown: exit 0, no stderr."""
+        with patch("src.server.PantsDevContainerServer") as mock_server_cls:
+            instance = mock_server_cls.return_value
+
+            async def _raise_closed() -> None:
+                raise RuntimeError("Connection closed by peer")
+
+            instance.run.side_effect = _raise_closed
+
+            with pytest.raises(SystemExit) as exc_info:
+                await async_main()
+
+        assert exc_info.value.code == 0
+        assert capsys.readouterr().err == ""
+
+    @pytest.mark.asyncio
+    async def test_real_failure_exits_nonzero_with_visible_error(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """A genuine failure must exit non-zero and surface the error on stderr."""
+        with patch("src.server.PantsDevContainerServer") as mock_server_cls:
+            mock_server_cls.side_effect = RuntimeError("simulated startup failure")
+
+            with pytest.raises(SystemExit) as exc_info:
+                await async_main()
+
+        assert exc_info.value.code == 1
+        stderr = capsys.readouterr().err
+        assert "simulated startup failure" in stderr
